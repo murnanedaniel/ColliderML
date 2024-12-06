@@ -1,0 +1,54 @@
+site_name: ColliderML
+site_description: A modern machine learning library for high-energy physics data analysis
+repo_url: https://github.com/yourusername/colliderml
+repo_name: colliderml
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: deep purple
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - search.suggest
+    - search.highlight
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          selection:
+            docstring_style: google
+          rendering:
+            show_source: true
+            show_root_heading: true
+
+nav:
+  - Home: index.md
+  - User Guide:
+    - Installation: guide/installation.md
+    - Quick Start: guide/quickstart.md
+  - API Reference:
+    - Core:
+      - IO: api/core/io.md
+      - Data: api/core/data.md
+    - Utils: api/utils.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Code of Conduct: development/code_of_conduct.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true 
