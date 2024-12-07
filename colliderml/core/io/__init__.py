@@ -1,5 +1,5 @@
 """IO operations for ColliderML."""
 
-from .xrootd import XRootDClient
+from .downloader import DataDownloader
 
-__all__ = ["XRootDClient"] 
+__all__ = ["DataDownloader"] 
