@@ -6,9 +6,9 @@ setup(
     description="A modern machine learning library for high-energy physics data analysis",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    author="Your Name",
-    author_email="your.email@example.com",
-    url="https://github.com/yourusername/colliderml",
+    author="Daniel Murnane",
+    author_email="dtmurnane@lbl.gov",
+    url="https://github.com/murnanedaniel/colliderml",
     packages=find_packages(),
     python_requires=">=3.10,<3.12",
     install_requires=[
@@ -37,8 +37,8 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
     ],
     project_urls={
-        "Documentation": "https://yourusername.github.io/colliderml",
-        "Source": "https://github.com/yourusername/colliderml",
-        "Issues": "https://github.com/yourusername/colliderml/issues",
+        "Documentation": "https://murnanedaniel.github.io/colliderml",
+        "Source": "https://github.com/murnanedaniel/colliderml",
+        "Issues": "https://github.com/murnanedaniel/colliderml/issues",
     },
 ) 

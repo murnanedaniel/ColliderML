@@ -1,6 +1,6 @@
 site_name: ColliderML
 site_description: A modern machine learning library for high-energy physics data analysis
-repo_url: https://github.com/yourusername/colliderml
+repo_url: https://github.com/murnanedaniel/colliderml
 repo_name: colliderml
 
 theme:

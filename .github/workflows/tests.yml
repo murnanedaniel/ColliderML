@@ -28,9 +28,12 @@ jobs:
     
     - name: Run tests
       run: |
-        pytest --cov=colliderml --cov-report=xml
+        # Run all tests except integration tests
+        pytest -v -m "not integration" --cov=colliderml --cov-report=xml
     
-    - name: Upload coverage
+    - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
+        fail_ci_if_error: true
+        verbose: true

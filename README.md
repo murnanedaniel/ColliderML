@@ -1,5 +1,10 @@
 # ColliderML
 
+[![Tests](https://github.com/murnanedaniel/colliderml/actions/workflows/tests.yml/badge.svg)](https://github.com/murnanedaniel/colliderml/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/murnanedaniel/colliderml/branch/main/graph/badge.svg)](https://codecov.io/gh/murnanedaniel/colliderml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A modern machine learning library for high-energy physics data analysis.
 
 ## Features
@@ -28,7 +33,7 @@ conda create -n collider-dev python=3.11  # 3.10 or 3.11 recommended
 conda activate collider-dev
 
 # Clone repository
-git clone https://github.com/yourusername/colliderml.git
+git clone https://github.com/murnanedaniel/colliderml.git
 cd colliderml
 
 # Install in development mode with extra dependencies
@@ -88,6 +93,13 @@ for path, result in results.items():
 
 2. Run tests:
    ```bash
+   # Run unit tests only
+   pytest -v -m "not integration"
+   
+   # Run all tests including integration tests
+   pytest -v
+   
+   # Run with coverage report
    pytest --cov=colliderml
    ```
 
