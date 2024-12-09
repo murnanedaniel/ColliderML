@@ -29,11 +29,30 @@ jobs:
     - name: Run tests
       run: |
         # Run all tests except integration tests
-        pytest -v -m "not integration" --cov=colliderml --cov-report=xml
+        pytest -v -m "not integration" --cov=colliderml --cov-report=xml --cov-report=term-missing
     
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+    - name: Generate Coverage Badge
+      uses: tj-actions/coverage-badge-py@v2
       with:
-        file: ./coverage.xml
-        fail_ci_if_error: true
-        verbose: true
+        output: coverage.svg
+    
+    - name: Verify Changed files
+      uses: tj-actions/verify-changed-files@v16
+      id: verify-changed-files
+      with:
+        files: coverage.svg
+
+    - name: Commit files
+      if: steps.verify-changed-files.outputs.files_changed == 'true'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add coverage.svg
+        git commit -m "Updated coverage badge."
+    
+    - name: Push changes
+      if: steps.verify-changed-files.outputs.files_changed == 'true'
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
