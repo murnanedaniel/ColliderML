@@ -36,7 +36,20 @@ def test_init_failure():
 
 def test_list_files(downloader, mock_session):
     """Test listing files."""
-    mock_session.get.return_value.text = "file1.root\nfile2.root"
+    # Mock HTML directory listing
+    mock_session.get.return_value.text = '''
+    <!DOCTYPE HTML>
+    <html>
+    <body>
+    <h1>Index of /test/path</h1>
+    <ul>
+    <li><a href="../">Parent Directory</a></li>
+    <li><a href="file1.root">file1.root</a></li>
+    <li><a href="file2.root">file2.root</a></li>
+    </ul>
+    </body>
+    </html>
+    '''
     files = downloader.list_files("test/path")
     assert files == ["file1.root", "file2.root"]
 
