@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+# Add permissions configuration
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,6 +19,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
@@ -28,7 +34,6 @@ jobs:
     
     - name: Run tests
       run: |
-        # Run all tests except integration tests
         pytest -v -m "not integration" --cov=colliderml --cov-report=xml --cov-report=term-missing
     
     - name: Generate Coverage Badge
@@ -42,17 +47,12 @@ jobs:
       with:
         files: coverage.svg
 
-    - name: Commit files
+    - name: Commit and Push Changes
       if: steps.verify-changed-files.outputs.files_changed == 'true'
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
+        git pull origin main --rebase
         git add coverage.svg
         git commit -m "Updated coverage badge."
-    
-    - name: Push changes
-      if: steps.verify-changed-files.outputs.files_changed == 'true'
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ github.ref }}
+        git push origin main
