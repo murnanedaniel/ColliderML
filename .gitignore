@@ -46,3 +46,12 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db 
+
+# Data files
+data/
+*.csv
+*.json
+*.txt
+*.pkl
+*.joblib
+*.joblib
