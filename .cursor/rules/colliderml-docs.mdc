@@ -1,0 +1,118 @@
+---
+description: When writing documentation for colliderml
+globs: 
+---
+The following should always be considered when writing or editing documentation for our ColliderML project...
+
+# Documentation Guide
+
+This document outlines our documentation structure, based on the [Divio Documentation System](https://docs.divio.com/documentation-system/).
+
+## The Four Types of Documentation
+
+Our documentation is divided into four distinct types, each serving a different purpose:
+
+### 1. Tutorials (Learning-oriented)
+- **Purpose**: Teaching new users the basics
+- **Format**: Lesson-style, hands-on practice
+- **Example Topics**:
+  - "Your First HEP Dataset"
+  - "Basic Data Processing Pipeline"
+  - "Visualizing Detector Data"
+- **Key Characteristics**:
+  - Concrete steps
+  - Minimal explanation
+  - Immediate results
+  - Success-oriented (avoid edge cases)
+
+### 2. How-to Guides (Problem-oriented)
+- **Purpose**: Solving specific problems
+- **Format**: Recipe-style, step-by-step
+- **Example Topics**:
+  - "Downloading Large ROOT Files with Resume"
+  - "Configuring Multi-worker Data Loading"
+  - "Handling Interrupted Downloads"
+- **Key Characteristics**:
+  - Practical steps
+  - Focused on results
+  - Flexible for different contexts
+  - Problem-specific
+
+### 3. Reference (Information-oriented)
+- **Purpose**: Describing the technical details
+- **Format**: Technical documentation
+- **Example Topics**:
+  - API Documentation
+  - Configuration Options
+  - Data Format Specifications
+- **Key Characteristics**:
+  - Accurate and complete
+  - Structure mirrors the code
+  - Technically precise
+  - Descriptive
+
+### 4. Explanation (Understanding-oriented)
+- **Purpose**: Deepening understanding
+- **Format**: Discussion/background
+- **Example Topics**:
+  - "HEP Data Structures Explained"
+  - "Machine Learning in Physics"
+  - "Design Decisions in ColliderML"
+- **Key Characteristics**:
+  - Provides context
+  - Discusses alternatives
+  - Explains "why"
+  - Theory-focused
+
+## Writing Guidelines
+
+### General Principles
+- Keep each type of documentation separate
+- Link between different types where appropriate
+- Maintain consistent technical depth within each section
+- Use clear, precise language
+
+### Style by Type
+1. **Tutorials**:
+   - Use active voice
+   - Include all steps, no assumptions
+   - Focus on learning, not completeness
+
+2. **How-to Guides**:
+   - Clear prerequisites
+   - Focused on the task
+   - Include error handling
+   - Show real-world usage
+
+3. **Reference**:
+   - Consistent structure
+   - Complete technical details
+   - Example usage
+   - Link to related guides
+
+4. **Explanation**:
+   - Clear narrative structure
+   - Technical but accessible
+   - Include context and background
+   - Reference academic sources where appropriate
+
+## Documentation Structure
+
+```
+docs/
+├── guide/
+│   ├── tutorials/          # Learning-oriented
+│   │   ├── first-steps.md
+│   │   └── basic-pipeline.md
+│   ├── how-to/            # Problem-oriented
+│   │   ├── large-files.md
+│   │   └── configuration.md
+│   └── concepts/          # Understanding-oriented
+│       ├── hep-data.md
+│       └── design.md
+├── api/                   # Information-oriented
+│   ├── core.md
+│   ├── io.md
+│   └── utils.md
+└── index.md              # Landing page
+``` 

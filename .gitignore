@@ -55,3 +55,6 @@ data/
 *.pkl
 *.joblib
 *.joblib
+
+# Docs
+docs/node_modules/
