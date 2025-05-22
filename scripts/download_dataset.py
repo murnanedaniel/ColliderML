@@ -1,37 +1,16 @@
 #!/usr/bin/env python3
-"""Script to download the entire ColliderML dataset with performance metrics."""
+"""Script to download the ColliderML dataset."""
 
-import time
 import argparse
 from pathlib import Path
-from typing import List, Dict, Any
 import json
+from typing import List, Dict, Any
 from colliderml.core.io import DataDownloader
-
-def get_all_files(downloader: DataDownloader) -> List[str]:
-    """Get all files recursively from the server.
-    
-    Args:
-        downloader: DataDownloader instance
-        
-    Returns:
-        List of all file paths
-    """
-    all_files = []
-    base_dir = "pda_batch_parallel_testing"
-    
-    # List all proc_X directories
-    proc_dirs = [d for d in downloader.list_files(base_dir) if d.startswith("proc_")]
-    print(f"Found {len(proc_dirs)} process directories")
-    
-    # Get files from each directory
-    for proc_dir in proc_dirs:
-        dir_path = f"{base_dir}/{proc_dir}"
-        files = [f"{dir_path}/{f}" for f in downloader.list_files(dir_path)]
-        print(f"{proc_dir}: {len(files)} files")
-        all_files.extend(files)
-    
-    return all_files
+from colliderml.core.data.config import (
+    PileupLevel,
+    OBJECT_CONFIGS,
+    VALID_PROCESSES
+)
 
 def format_size(size_bytes: int) -> str:
     """Format size in bytes to human readable format."""
@@ -42,66 +21,61 @@ def format_size(size_bytes: int) -> str:
     return f"{size_bytes:.2f} TB"
 
 def main():
-    parser = argparse.ArgumentParser(description="Download the entire ColliderML dataset")
+    parser = argparse.ArgumentParser(description="Download the ColliderML dataset")
     parser.add_argument("--output-dir", type=str, default="data",
                        help="Directory to save downloaded files")
     parser.add_argument("--workers", type=int, default=4,
                        help="Number of parallel downloads")
     parser.add_argument("--resume", action="store_true",
                        help="Resume interrupted downloads")
-    parser.add_argument("--no-preserve-structure", action="store_true",
-                       help="Don't preserve directory structure")
+    parser.add_argument("--pileup", type=str, choices=['single-particle', 'pileup-10', 'pileup-200'],
+                       default='pileup-10', help="Pileup level to download")
+    parser.add_argument("--processes", type=str, nargs="+", choices=list(VALID_PROCESSES),
+                       default=['ttbar'], help="Physics processes to download")
+    parser.add_argument("--objects", type=str, nargs="+", choices=list(OBJECT_CONFIGS.keys()),
+                       default=['tracks'], help="Object types to download")
+    parser.add_argument("--start-event", type=int, default=0,
+                       help="First event number to download")
+    parser.add_argument("--end-event", type=int, default=999,
+                       help="Last event number to download")
     args = parser.parse_args()
     
     # Initialize downloader
     downloader = DataDownloader()
     output_dir = Path(args.output_dir)
     
-    # Get list of all files
-    print("\nScanning for files...")
-    start_time = time.time()
-    all_files = get_all_files(downloader)
-    scan_time = time.time() - start_time
-    print(f"\nFound {len(all_files)} files in {scan_time:.2f} seconds")
-    
-    # Group files by type for reporting
-    file_types = {}
-    for f in all_files:
-        ext = Path(f).suffix
-        file_types[ext] = file_types.get(ext, 0) + 1
-    print("\nFile types:")
-    for ext, count in file_types.items():
-        print(f"{ext}: {count} files")
-    
-    # Start downloads
-    print(f"\nStarting downloads with {args.workers} workers...")
+    # Print download plan
+    print("\nDownload Configuration:")
+    print(f"Pileup: {args.pileup}")
+    print(f"Processes: {', '.join(args.processes)}")
+    print(f"Objects: {', '.join(args.objects)}")
+    print(f"Event range: {args.start_event}-{args.end_event}")
+    print(f"Output directory: {output_dir}")
+    print(f"Workers: {args.workers}")
     if args.resume:
         print("Resume mode enabled - will attempt to continue partial downloads")
     
-    start_time = time.time()
-    results = downloader.download_files(
-        remote_paths=all_files,
+    # Start downloads
+    results = downloader.download_dataset(
+        pileup=args.pileup,
+        processes=args.processes,
+        object_types=args.objects,
         local_dir=output_dir,
         max_workers=args.workers,
-        resume=args.resume,
-        preserve_structure=not args.no_preserve_structure
+        resume=args.resume
     )
-    total_time = time.time() - start_time
     
     # Calculate statistics
     successful = [r for r in results.values() if r.success]
     failed = [r for r in results.values() if not r.success]
-    total_size = sum(r.size or 0 for r in successful)  # Use size from DownloadResult
-    avg_speed = total_size / total_time  # bytes per second
+    total_size = sum(r.size or 0 for r in successful)
     
     # Print summary
     print("\nDownload Summary:")
-    print(f"Total files: {len(all_files)}")
+    print(f"Total files: {len(results)}")
     print(f"Successful: {len(successful)}")
     print(f"Failed: {len(failed)}")
     print(f"Total size: {format_size(total_size)}")
-    print(f"Total time: {total_time:.2f} seconds")
-    print(f"Average speed: {format_size(int(avg_speed))}/s")
     
     if failed:
         print("\nFailed downloads:")
@@ -111,21 +85,26 @@ def main():
     
     # Save detailed results
     stats = {
-        "total_files": len(all_files),
+        "total_files": len(results),
         "successful": len(successful),
         "failed": len(failed),
         "total_size_bytes": total_size,
-        "total_time_seconds": total_time,
-        "average_speed_bytes_per_second": avg_speed,
-        "workers": args.workers,
-        "file_types": file_types,
+        "configuration": {
+            "pileup": args.pileup,
+            "processes": args.processes,
+            "objects": args.objects,
+            "event_range": f"{args.start_event}-{args.end_event}",
+            "workers": args.workers,
+            "resume": args.resume
+        },
         "failed_files": [
             {
-                "path": str(r.path),
-                "error": r.error,
-                "partial_size": r.size
+                "path": str(path),
+                "error": result.error,
+                "partial_size": result.size
             }
-            for r in failed
+            for path, result in results.items()
+            if not result.success
         ]
     }
     

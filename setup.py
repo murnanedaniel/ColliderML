@@ -16,6 +16,7 @@ setup(
         "tqdm>=4.66.0",
         "numpy>=1.24.0",
         "pydantic>=2.5.0",
+        "h5py>=3.10.0",
     ],
     extras_require={
         "dev": [
