@@ -492,11 +492,6 @@ const maxAvailableIndex = eventCountValues.length - 1
             <h4>Processing</h4>
             <div class="processing-options">
               <label class="switch">
-                <input type="checkbox" v-model="selections.processing.merge">
-                <span class="slider"></span>
-                <span class="label">Merge Objects</span>
-              </label>
-              <label class="switch">
                 <input type="checkbox" v-model="selections.processing.pytorch">
                 <span class="slider"></span>
                 <span class="label">PyTorch Ready</span>
