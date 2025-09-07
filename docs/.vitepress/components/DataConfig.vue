@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watchEffect } from 'vue'
 
 const selections = ref({
   channels: ['ttbar'],
@@ -18,31 +18,134 @@ const expanded = ref({
   objects: false
 })
 
-const channelTypes = [
-  { id: 'ttbar', label: 'tt̄', available: true },
-  { id: 'wjets', label: 'W+jets', available: false },
-  { id: 'zjets', label: 'Z+jets', available: false },
-  { id: 'chichi', label: 'SUSY', available: true },
-  { id: 'higgs', label: 'Higgs', available: false },
-  { id: 'qcd', label: 'QCD', available: false },
-  { id: 'exotics', label: 'Exotics', available: false }
-]
+// Datasets (derived from manifest)
+const channelTypes = ref([])
 
-const pileupTypes = [
+const pileupTypes = ref([
   { id: 'single_particle', label: 'Single Particle', available: false },
-  { id: 'pileup-10', label: '<μ>=10', available: true },
+  { id: 'pileup-10', label: '<μ>=10', available: false },
   { id: 'pileup-200', label: '<μ>=200', available: false }
-]
+])
 
-const objectTypes = [
-  { id: 'tracks', label: 'Tracks', size: 20, available: true }, 
-  { id: 'particle_flow', label: 'Particle Flow', size: 20, available: false },
-  { id: 'particles', label: 'Particles', size: 100, available: false },
-  { id: 'events', label: 'Events', size: 5, available: false },
-  { id: 'partons', label: 'Partons', size: 100, available: false },
-  { id: 'tracker_hits', label: 'Tracker Hits', size: 1000, available: false },
-  { id: 'calo_cells', label: 'Calo Cells', size: 3000, available: false }
-]
+// Objects (derived from manifest)
+const objectTypes = ref([])
+
+// Manifest fetch + derivation
+// Prefer dev proxy during development to avoid CORS, else same-origin
+const manifestUrlCandidates = (import.meta.env && import.meta.env.DEV)
+  ? ['/nersc/manifest.json', '/manifest.json']
+  : ['/manifest.json']
+const manifest = ref(null)
+const selectedCampaign = ref('taster')
+
+// Approximate display sizes per object (GB per 1,000 events)
+const objectDisplaySizes = {
+  hits: 10,
+  tracks: 0.1,
+  particle_flow: 20,
+  particles: 3,
+  events: 1,
+  partons: 2,
+  tracker_hits: 10,
+  calo_cells: 30
+}
+
+const now = () => new Date()
+
+function deriveFromManifest() {
+  if (!manifest.value) return
+  const campaigns = manifest.value.campaigns || {}
+  const camp = campaigns[selectedCampaign.value]
+  if (!camp || !camp.datasets) return
+
+  // Diagnostics: log high-level manifest details for visibility
+  try {
+    console.log('[ColliderML] campaigns:', Object.keys(campaigns))
+    console.log('[ColliderML] selected campaign:', selectedCampaign.value, { pileup: camp.pileup, default: camp.default })
+  } catch {}
+
+  // Pileup from campaign if present; enable corresponding pileup button
+  // Expect e.g. { pileup: 200 } -> select 'pileup-200'
+  if (camp.pileup) {
+    const pid = `pileup-${camp.pileup}`
+    pileupTypes.value = pileupTypes.value.map(p => ({ ...p, available: p.id === pid }))
+    // Initialize selection to campaign pileup if not already selected
+    if (!selections.value.pileup.includes(pid)) {
+      selections.value.pileup = [pid]
+    }
+  }
+
+  // Datasets list
+  const datasets = Object.keys(camp.datasets)
+  console.log('[ColliderML] datasets in campaign', selectedCampaign.value, ':', datasets)
+  channelTypes.value = datasets.map(ds => {
+    const d = camp.datasets[ds]
+    const availableFrom = d.available || d.available_from || null
+    const isPlanned = !!availableFrom && (new Date(availableFrom) > now())
+    // Available if any objects exist in default version and not planned in the future
+    const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
+    const hasObjects = !!(defVer && defVer.objects && Object.keys(defVer.objects).length)
+    const available = hasObjects && !isPlanned
+    return { id: ds, label: ds, available }
+  })
+
+  // Objects union across datasets' default versions
+  const objectsSet = new Set()
+  for (const ds of datasets) {
+    const d = camp.datasets[ds]
+    const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
+    if (defVer && defVer.objects) {
+      console.log('[ColliderML] objects for dataset', ds, 'default_version', d.default_version, ':', Object.keys(defVer.objects))
+      Object.keys(defVer.objects).forEach(o => objectsSet.add(o))
+    }
+  }
+  const discoveredObjects = Array.from(objectsSet)
+  console.log('[ColliderML] union of objects across datasets:', discoveredObjects)
+  objectTypes.value = discoveredObjects.map(o => {
+    // Available if at least one dataset has entries for this object and not planned
+    let available = false
+    for (const ds of datasets) {
+      const d = camp.datasets[ds]
+      const availableFrom = d.available || d.available_from || null
+      const isPlanned = !!availableFrom && (new Date(availableFrom) > now())
+      const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
+      if (defVer && defVer.objects && defVer.objects[o] && defVer.objects[o].length && !isPlanned) {
+        available = true
+        break
+      }
+    }
+    return { id: o, label: o.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase()), size: objectDisplaySizes[o] || 0, available }
+  })
+}
+
+onMounted(async () => {
+  for (const url of manifestUrlCandidates) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      // Guard against HTML or invalid JSON
+      const text = await res.text()
+      try {
+        manifest.value = JSON.parse(text)
+      } catch (parseErr) {
+        throw new Error('Manifest is not valid JSON')
+      }
+      // Pick default campaign from manifest if available
+      try {
+        const campaigns = manifest.value?.campaigns || {}
+        const defaultEntry = Object.entries(campaigns).find(([, v]) => v && v.default)
+        const firstKey = Object.keys(campaigns)[0]
+        selectedCampaign.value = defaultEntry ? defaultEntry[0] : (firstKey || selectedCampaign.value)
+      } catch {}
+      deriveFromManifest()
+      return
+    } catch (e) {
+      console.warn('Failed to load manifest from', url, e)
+      continue
+    }
+  }
+  // No manifest available; proceed with empty defaults
+})
 
 // Add scaling factors for pileup types
 const pileupScaling = {
@@ -55,7 +158,7 @@ const pileupScaling = {
 const baseChannelSizeGB = computed(() => {
   // This is the size for 100,000 events
   return selections.value.objects.reduce((total, id) => {
-    const obj = objectTypes.find(o => o.id === id)
+    const obj = objectTypes.value.find(o => o.id === id)
     return total + (obj?.size || 0)
   }, 0)
 })
@@ -80,7 +183,7 @@ const rawSizeGB = computed(() => {
   console.log('Size for 100,000 events:', sizeFor100_000Events)
 
   // Then scale down to actual event count
-  const finalSize = sizeFor100_000Events * (selections.value.eventCount / 100000)
+  const finalSize = sizeFor100_000Events * (selections.value.eventCount / 1000)
   console.log(`Event count: ${selections.value.eventCount}`)
   console.log(`Final size after event scaling: ${finalSize}GB`)
   return finalSize
@@ -110,39 +213,32 @@ const estimatedTime = computed(() => {
 })
 
 const command = computed(() => {
-  let cmd = 'python scripts/cli.py download'
-  
-  // Add channel selections
+  let cmd = 'colliderml get'
+  // campaign
+  if (selectedCampaign.value) {
+    cmd += ` -c ${selectedCampaign.value}`
+  }
+  // datasets
   if (selections.value.channels.length) {
-    cmd += ' --channels ' + selections.value.channels.join(',')
+    cmd += ' -d ' + selections.value.channels.join(',')
   }
-  
-  // Add pileup selections
-  if (selections.value.pileup.length) {
-    cmd += ' --pileup ' + selections.value.pileup.join(',')
-  }
-  
-  // Add object selections
+  // objects
   if (selections.value.objects.length) {
-    cmd += ' --objects ' + selections.value.objects.join(',')
+    cmd += ' -o ' + selections.value.objects.join(',')
   }
-  
-  // Add processing options
-  if (selections.value.processing.merge) cmd += ' --merge'
-  if (selections.value.processing.pytorch) cmd += ' --pytorch'
-  
-  // Add file count
-  cmd += ` --events ${selections.value.eventCount}`
-  
+  // events
+  cmd += ` -e ${selections.value.eventCount}`
+  // output dir
+  cmd += ' -O data'
   return cmd
 })
 
 const toggleItem = (category, id) => {
   // Only toggle if the item is available
   const items = selections.value[category]
-  const itemList = category === 'channels' ? channelTypes : 
+  const itemList = category === 'channels' ? channelTypes.value : 
                   category === 'pileup' ? pileupTypes :
-                  objectTypes
+                  objectTypes.value
   const item = itemList.find(i => i.id === id)
   
   if (!item?.available) return // Don't toggle if not available
@@ -200,13 +296,48 @@ const copyCommand = async () => {
 // Define discrete event count values (all possible values)
 const eventCountValues = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
 
-const maxAvailableEvents = 1000
+const maxAvailableEvents = ref(1000)
+
+// Recompute max available events from manifest based on current selections
+watchEffect(() => {
+  if (!manifest.value) return
+  const camp = manifest.value.campaigns?.[selectedCampaign.value]
+  if (!camp) return
+  const selectedDatasets = selections.value.channels
+  const selectedObjects = selections.value.objects
+  let total = 0
+  console.log('[ColliderML] recomputing maxAvailableEvents for datasets', selectedDatasets, 'objects', selectedObjects)
+  for (const ds of selectedDatasets) {
+    const d = camp.datasets?.[ds]
+    if (!d) continue
+    const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
+    if (!defVer || !defVer.objects) continue
+    for (const obj of selectedObjects) {
+      const segments = defVer.objects[obj] || []
+      console.log('[ColliderML] segments for', ds, obj, ':', segments)
+      for (const seg of segments) {
+        const s = Number(seg.start_event) || 0
+        const e = Number(seg.end_event) || 0
+        if (e >= s) total += (e - s + 1)
+      }
+    }
+  }
+  // Fallback to 1000 if nothing computed
+  maxAvailableEvents.value = Math.max(total, 1000)
+  // Clamp current selection if needed
+  if (selections.value.eventCount > maxAvailableEvents.value) {
+    selections.value.eventCount = maxAvailableEvents.value
+  }
+  console.log('[ColliderML] maxAvailableEvents:', maxAvailableEvents.value)
+})
 
 // Helper function to convert between slider index and event count
 const logSliderToEvents = (value) => {
   // Only allow selecting up to maxAvailableEvents
-  const selectedValue = eventCountValues[Math.min(value, eventCountValues.findIndex(v => v > maxAvailableEvents) - 1)]
-  return Math.min(selectedValue, maxAvailableEvents)
+  const limitIndex = eventCountValues.findIndex(v => v > maxAvailableEvents.value)
+  const cappedIndex = Math.min(value, (limitIndex === -1 ? eventCountValues.length : limitIndex) - 1)
+  const selectedValue = eventCountValues[cappedIndex]
+  return Math.min(selectedValue, maxAvailableEvents.value)
 }
 
 const eventsToLogSlider = (events) => {
@@ -234,8 +365,8 @@ const formatEventCount = (count) => {
 const getTickClass = (value) => {
   return {
     active: value <= selections.value.eventCount,
-    available: value <= maxAvailableEvents,
-    inactive: value > maxAvailableEvents
+    available: value <= maxAvailableEvents.value,
+    inactive: value > maxAvailableEvents.value
   }
 }
 
