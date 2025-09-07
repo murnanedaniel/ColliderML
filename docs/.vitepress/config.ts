@@ -13,7 +13,8 @@ const config = defineConfig({
   ignoreDeadLinks: true,
   
   themeConfig: {
-    logo: '/logo.png',
+    logo: { src: '/logo.png', width: 120, height: 40 },
+    siteTitle: false,
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/introduction' },
@@ -52,7 +53,7 @@ const config = defineConfig({
     },
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2023-present ColliderML Contributors'
+      copyright: 'Copyright © 2024-present ColliderML Contributors'
     }
   },
   
