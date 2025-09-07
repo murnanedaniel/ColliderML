@@ -17,15 +17,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install deps
-        working-directory: docs
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
-
       - name: Fetch manifest
         working-directory: docs
         run: |
@@ -33,8 +24,7 @@ jobs:
           curl -fsSL https://portal.nersc.gov/cfs/m4958/ColliderML/manifest.json -o public/manifest.json || echo '{}' > public/manifest.json
 
       - name: Build docs
-        working-directory: docs
-        run: npm run docs:build
+        run: npx --yes vitepress@1.0.0-rc.40 build docs
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
