@@ -13,8 +13,8 @@ const config = defineConfig({
   ignoreDeadLinks: true,
   
   themeConfig: {
-    logo: { src: '/logo.png', height: 32 },
-    siteTitle: false,
+    // logo: { src: '/logo.png', height: 32 },
+    siteTitle: 'ColliderML',
     nav: [
       { text: 'Home', link: '/' },
       { text: 'ACAT', link: '/acat' }
