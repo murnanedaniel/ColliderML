@@ -31,10 +31,10 @@ const pileupTypes = ref([
 const objectTypes = ref([])
 
 // Manifest fetch + derivation
-// Prefer dev proxy during development to avoid CORS, else same-origin
-const manifestUrlCandidates = (import.meta.env && import.meta.env.DEV)
-  ? ['/nersc/manifest.json', '/manifest.json']
-  : ['/ColliderML/manifest.json', '/manifest.json']
+// Always fetch live from NERSC portal
+const manifestUrlCandidates = [
+  'https://portal.nersc.gov/cfs/m4958/ColliderML/manifest.json'
+]
 const manifest = ref(null)
 const selectedCampaign = ref('taster')
 
