@@ -13,7 +13,7 @@ const config = defineConfig({
   ignoreDeadLinks: true,
   
   themeConfig: {
-    logo: { src: '/logo.png', width: 120, height: 40 },
+    logo: '/logo.png',
     siteTitle: false,
     nav: [
       { text: 'Home', link: '/' },
