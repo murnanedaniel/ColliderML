@@ -7,7 +7,7 @@ const config = defineConfig({
   lastUpdated: true,
   // Set base for GitHub Pages project site if repo is 'colliderml'.
   // If using a custom domain or org/user site, adjust to '/'
-  base: '/colliderml/',
+  base: '/ColliderML/',
   
   // Ignore dead links for now (pages don't exist yet)
   ignoreDeadLinks: true,
