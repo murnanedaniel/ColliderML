@@ -10,25 +10,7 @@ The ColliderML dataset is the largest-yet source of full-detail simulation in a 
 
 **Why virtual?** The simulation choices are not tied to a construction timeline, there are no budget limitations, no politics. The only goals are to produce the most realistic physics on a detailed detector geometry, with significant computating challenges, in an ML-friendly structure.
 
-Here is an example collision:
-
-<div class="phoenix-container">
-  <iframe 
-    src="https://hepsoftwarefoundation.org/phoenix/atlas"
-    style="width: 100%; height: 600px; border: none; border-radius: 8px; box-shadow: var(--vp-shadow-2);"
-    title="Phoenix Event Display"
-    loading="lazy"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  ></iframe>
-</div>
-
-<style>
-.phoenix-container {
-  margin: 2rem 0;
-}
-</style>
-
-All of the data in this visualisation is available to inspect, including mappings between objects and performance benchmarks of those reconstructed objects.
+The ColliderML dataset provides comprehensive simulation data for machine learning applications in high-energy physics, with detailed detector responses and physics object reconstructions.
 
 </AboutData>
 
