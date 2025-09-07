@@ -57,6 +57,25 @@ class DataDownloader:
                     continue
             if not any_ok:
                 raise RuntimeError("Failed to connect to any data URLs")
+
+    def _derive_local_path(self, remote_path: str, local_dir: Path) -> Path:
+        """Derive a hierarchical local path from a ColliderML filename.
+
+        Expected filename format:
+        campaign.dataset.version.data_type.object.eventsS-E.h5 ->
+        local_dir/campaign/dataset/version/data_type/object/eventsS-E.h5
+
+        Falls back to mirroring the remote subdirectories if parsing fails.
+        """
+        filename = os.path.basename(remote_path)
+        name_parts = filename.split('.')
+        # Minimal validation: expect ... .events... .h5
+        if len(name_parts) >= 7 and name_parts[-1] == 'h5' and name_parts[-2].startswith('events'):
+            campaign, dataset, version, data_type, object_name = name_parts[0:5]
+            filename_tail = '.'.join(name_parts[5:])  # e.g. events0-99.h5
+            return local_dir / campaign / dataset / version / data_type / object_name / filename_tail
+        # Fallback: preserve remote directory structure under local_dir
+        return local_dir / Path(os.path.dirname(remote_path)) / filename
     
     def _compute_checksum(self, file_path: Path) -> str:
         """Compute SHA-256 checksum of a file.
@@ -193,7 +212,7 @@ class DataDownloader:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_path = {}
             for rp in remote_paths:
-                lp = local_dir / os.path.basename(rp)
+                lp = self._derive_local_path(rp, local_dir)
                 future = executor.submit(self._download_single_file, rp, lp, resume)
                 future_to_path[future] = rp
             for future in as_completed(future_to_path):

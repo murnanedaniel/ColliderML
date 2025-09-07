@@ -12,6 +12,7 @@ def get(
     datasets: Optional[List[str]] = None,
     objects: Optional[List[str]] = None,
     events: Optional[int] = None,
+    version: Optional[str] = None,
     output_dir: Path | str = "data",
     workers: int = 4,
     resume: bool = True,
@@ -26,6 +27,7 @@ def get(
         datasets=datasets,
         objects=objects,
         max_events=events,
+        version=version,
     )
     if not files:
         return {}

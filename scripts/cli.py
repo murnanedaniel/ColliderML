@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 from colliderml.core.io import DataDownloader
 from colliderml.core.data.manifest import ManifestClient
-
  
 
 
@@ -29,6 +28,7 @@ def get(args):
             datasets=datasets,
             objects=objects,
             max_events=args.events,
+            version=args.version,
         )
     except Exception as e:
         print(f"\nError reading manifest: {e}")
@@ -40,6 +40,7 @@ def get(args):
 
     print("\nGet Configuration:")
     print(f"Campaign: {args.campaign or 'default'}")
+    print(f"Version: {args.version or 'dataset defaults'}")
     print(f"Datasets: {', '.join(datasets) if datasets else 'ALL'}")
     print(f"Objects: {', '.join(objects) if objects else 'ALL'}")
     print(f"Requested events: {args.events if args.events else 'ALL'}")
@@ -75,20 +76,22 @@ def main():
     
     # Get command (manifest-driven)
     get_parser = subparsers.add_parser('get', help='Get files using manifest selection')
-    get_parser.add_argument('--campaign', type=str, default='default',
+    get_parser.add_argument('-c', '--campaign', type=str, default='default',
                             help='Campaign name (or "default" to use manifest default)')
-    get_parser.add_argument('--datasets', type=str,
+    get_parser.add_argument('-d', '--datasets', type=str,
                             help='Comma-separated list of datasets (e.g. ttbar,qcd)')
-    get_parser.add_argument('--objects', type=str,
+    get_parser.add_argument('-o', '--objects', type=str,
                             help='Comma-separated list of objects (e.g. tracks,hits)')
-    get_parser.add_argument('--events', type=int, default=None,
+    get_parser.add_argument('-e', '--events', type=int, default=None,
                             help='Max number of events to download (across selection)')
-    get_parser.add_argument('--output-dir', type=str, default='data',
+    get_parser.add_argument('-O', '--output-dir', '--output_dir', dest='output_dir', type=str, default='data',
                             help='Directory to save downloaded files')
-    get_parser.add_argument('--workers', type=int, default=4,
+    get_parser.add_argument('-w', '--workers', type=int, default=4,
                             help='Number of parallel downloads')
-    get_parser.add_argument('--no-resume', action='store_true',
+    get_parser.add_argument('--no-resume', '--no_resume', dest='no_resume', action='store_true',
                             help='Disable resuming partial downloads')
+    get_parser.add_argument('-v', '--version', type=str, default=None,
+                            help='Dataset version to use (overrides dataset default_version)')
     
     args = parser.parse_args()
     
