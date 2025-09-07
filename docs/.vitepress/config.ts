@@ -13,7 +13,7 @@ const config = defineConfig({
   ignoreDeadLinks: true,
   
   themeConfig: {
-    logo: '/logo.svg',
+    logo: '/logo.png',
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/introduction' },
