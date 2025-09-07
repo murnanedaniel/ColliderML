@@ -19,7 +19,12 @@ jobs:
 
       - name: Install deps
         working-directory: docs
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Fetch manifest
         working-directory: docs
