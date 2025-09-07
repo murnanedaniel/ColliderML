@@ -1,0 +1,140 @@
+{
+    "campaigns": {
+      "taster": {
+        "default": false,
+        "datasets": {
+          "ttbar": {
+            "default_version": "v2",
+            "versions": {
+              "v2": {
+                "objects": {
+                  "hits": [
+                    { "path": "taster/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events0-99.h5", "start_event": 0, "end_event": 99 }
+                  ],
+                  "particles": [],
+                  "tracks": []
+                }
+              }
+            }
+          }
+        }
+      },
+      "full_pileup_pilot": {
+        "pileup": 200,
+        "default": true,
+        "datasets": {
+          "ttbar": {
+            "default_version": "v2",
+            "available": "2025-09-07",
+            "versions": {
+              "v2": {
+                "objects": {
+                "hits": [
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events0-99.h5", "start_event": 0, "end_event": 99 }
+                  ],
+                  "particles": [],
+                  "tracks": []
+                }
+              }
+            }
+          },
+          "zee": {
+            "default_version": "v1",
+            "available": "2025-09-10",
+            "versions": {}
+          },
+          "zmumu": {
+            "default_version": "v1",
+            "available": "2025-09-10",
+            "versions": {
+              "v1": {
+                "objects": {
+                  "hits": [],
+                  "particles": [],
+                  "tracks": []
+                }
+              }
+            }
+          },
+          "diphoton": {
+            "default_version": "v1",
+            "available": "2025-09-13",
+            "versions": {
+              "v1": {
+                "objects": {
+                  "hits": [],
+                  "particles": [],
+                  "tracks": []
+                }
+              }
+            }
+          },
+          "ggf": {
+            "default_version": "v1",
+            "available": "2025-09-13",
+            "versions": {
+              "v1": {
+                "objects": {
+                  "hits": [],
+                  "particles": [],
+                  "tracks": []
+                }
+              }
+            }
+          },
+          "dihiggs": {
+            "default_version": "v1",
+            "available": "2025-09-13",
+            "versions": {
+              "v1": {
+                "objects": {
+                  "hits": [],
+                  "particles": [],
+                  "tracks": []
+                }
+              }
+            }
+          },
+          "SUSY": {
+            "default_version": "v1",
+            "available": "2025-09-17",
+            "versions": {
+              "v1": {
+                "objects": {
+                  "hits": [],
+                  "particles": [],
+                  "tracks": []
+                }
+              }
+            }
+          },
+          "hiddenvalley": {
+            "default_version": "v1",
+            "available": "2025-09-24",
+            "versions": {
+              "v1": {
+                "objects": {
+                  "hits": [],
+                  "particles": [],
+                  "tracks": []
+                }
+              }
+            }
+          },
+          "hnl": {
+            "default_version": "v1",
+            "available": "2025-09-24",
+            "versions": {
+              "v1": {
+                "objects": {
+                  "hits": [],
+                  "particles": [],
+                  "tracks": []
+                }
+              }
+            }
+          }
+        }
+    }
+  }
+}
