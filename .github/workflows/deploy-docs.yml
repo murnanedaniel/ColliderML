@@ -17,14 +17,16 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install docs dependencies
+        run: npm ci --prefix docs
+
       - name: Fetch manifest
-        working-directory: docs
         run: |
-          mkdir -p public
-          curl -fsSL https://portal.nersc.gov/cfs/m4958/ColliderML/manifest.json -o public/manifest.json || echo '{}' > public/manifest.json
+          mkdir -p docs/public
+          curl -fsSL https://portal.nersc.gov/cfs/m4958/ColliderML/manifest.json -o docs/public/manifest.json || echo '{}' > docs/public/manifest.json
 
       - name: Build docs
-        run: npx --yes vitepress@1.0.0-rc.40 build docs
+        run: npm run --prefix docs docs:build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
