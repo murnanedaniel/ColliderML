@@ -17,40 +17,9 @@ const config = defineConfig({
     siteTitle: false,
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/guide/introduction' },
-      { text: 'API', link: '/api/core' },
-      { text: 'GitHub', link: 'https://github.com/murnanedaniel/colliderml' }
+      { text: 'ACAT', link: '/acat' }
     ],
-    sidebar: {
-      '/guide/': [
-        {
-          text: 'Getting Started',
-          items: [
-            { text: 'Introduction', link: '/guide/introduction' },
-            { text: 'Installation', link: '/guide/installation' },
-            { text: 'Quick Start', link: '/guide/quickstart' },
-          ]
-        },
-        {
-          text: 'Core Concepts',
-          items: [
-            { text: 'Data Management', link: '/guide/data-management' },
-            { text: 'Machine Learning', link: '/guide/machine-learning' },
-            { text: 'Visualization', link: '/guide/visualization' },
-          ]
-        }
-      ],
-      '/api/': [
-        {
-          text: 'API Reference',
-          items: [
-            { text: 'Core', link: '/api/core' },
-            { text: 'IO', link: '/api/io' },
-            { text: 'Utils', link: '/api/utils' },
-          ]
-        }
-      ]
-    },
+    sidebar: {},
     footer: {
       message: 'Released under the MIT License.',
       copyright: 'Copyright © 2024-present ColliderML Contributors'
