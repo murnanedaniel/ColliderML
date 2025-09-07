@@ -43,46 +43,26 @@ pip install -e ".[dev]"
 ## Quick Start
 
 ```python
+from colliderml.core.data.manifest import ManifestClient
 from colliderml.core.io import DataDownloader
 
-# Initialize downloader with custom settings
-downloader = DataDownloader(
-    max_retries=3,        # Maximum retry attempts for failed downloads
-    retry_backoff=0.3,    # Exponential backoff factor between retries
-    chunk_size=8192       # Download chunk size in bytes
-)
+manifest = ManifestClient()
+files = manifest.select_files(campaign=None, datasets=["ttbar"], objects=["tracks"], max_events=1000)
 
-# List available files
-files = downloader.list_files("pda_batch_parallel_testing/proc_1")
+downloader = DataDownloader()
+results = downloader.download_files([f.path for f in files], local_dir="data", max_workers=4, resume=True)
 
-# Download files in parallel with progress tracking and resume capability
-results = downloader.download_files(
-    remote_paths=[
-        "pda_batch_parallel_testing/proc_1/edm4hep.root",
-        "pda_batch_parallel_testing/proc_1/simhits.root"
-    ],
-    local_dir="data",
-    max_workers=4,  # Number of parallel downloads
-    resume=True     # Automatically resume interrupted downloads
-)
-
-# Check download results
 for path, result in results.items():
-    if result.success:
-        print(f"✓ Successfully downloaded {path}")
-        print(f"  SHA-256: {result.checksum}")
-    else:
-        print(f"✗ Failed to download {path}: {result.error}")
+    print(path, result.success, result.error)
 ```
 
 ### Features
 
-- **Parallel Downloads**: Download multiple files concurrently for better performance
-- **Resume Capability**: Automatically resume interrupted downloads
-- **Checksum Verification**: SHA-256 checksums for file integrity
-- **Progress Tracking**: Real-time progress bars for each download
-- **Error Handling**: Automatic retries with exponential backoff
-- **Detailed Results**: Comprehensive download status and error reporting
+- **Manifest-driven**: Always selects files from the latest portal manifest
+- **Parallel Downloads**: Download multiple files concurrently
+- **Resume Capability**: Optionally resume interrupted downloads
+- **Progress Tracking**: Real-time progress bars
+- **Clear Errors**: Helpful failure messages and HEAD checks
 
 ## Development
 

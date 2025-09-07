@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="colliderml",
-    version="0.1.0",
+    version="0.1.1",
     description="A modern machine learning library for high-energy physics data analysis",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
@@ -18,6 +18,11 @@ setup(
         "pydantic>=2.5.0",
         "h5py>=3.10.0",
     ],
+    entry_points={
+        "console_scripts": [
+            "colliderml=scripts.cli:main",
+        ]
+    },
     extras_require={
         "dev": [
             "pytest>=7.4.0",

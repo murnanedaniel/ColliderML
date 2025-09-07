@@ -4,81 +4,63 @@
 import argparse
 import sys
 from pathlib import Path
-import colliderml
-from colliderml import core
 from colliderml.core.io import DataDownloader
-from colliderml.core.data.config import PileupLevel, EVENTS_PER_FILE, DATASET_SIZES
+from colliderml.core.data.manifest import ManifestClient
 
-def download(args):
-    """Handle the download command."""
-    # Convert comma-separated lists to lists
-    channels = args.channels.split(',') if args.channels else []
-    objects = args.objects.split(',') if args.objects else []
-    pileup_levels = args.pileup.split(',') if args.pileup else []
-    
-    # Initialize downloader
+ 
+
+
+def get(args):
+    """Handle the get command (manifest-driven)."""
     downloader = DataDownloader()
-    
-    # Print download plan
-    print("\nDownload Configuration:")
-    print(f"Channels: {', '.join(channels)}")
-    print(f"Pileup: {', '.join(pileup_levels)}")
-    print(f"Objects: {', '.join(objects)}")
-    print(f"Requested events: {args.events}")
+    manifest = ManifestClient()
+
+    # Determine campaign
+    campaign = args.campaign if args.campaign and args.campaign != "default" else None
+
+    # Parse lists
+    datasets = args.datasets.split(',') if args.datasets else None
+    objects = args.objects.split(',') if args.objects else None
+
+    # Select files
+    try:
+        files = manifest.select_files(
+            campaign=campaign,
+            datasets=datasets,
+            objects=objects,
+            max_events=args.events,
+        )
+    except Exception as e:
+        print(f"\nError reading manifest: {e}")
+        sys.exit(1)
+
+    if not files:
+        print("No files matched the selection from the manifest.")
+        sys.exit(0)
+
+    print("\nGet Configuration:")
+    print(f"Campaign: {args.campaign or 'default'}")
+    print(f"Datasets: {', '.join(datasets) if datasets else 'ALL'}")
+    print(f"Objects: {', '.join(objects) if objects else 'ALL'}")
+    print(f"Requested events: {args.events if args.events else 'ALL'}")
     print(f"Output directory: {args.output_dir}")
-    
-    # Download for each combination
-    results = {}
-    for pileup in pileup_levels:
-        for process in channels:
-            for object_type in objects:
-                try:
-                    # Get the total available events for this process
-                    if process not in DATASET_SIZES:
-                        print(f"\nWarning: No dataset size information for {process}, skipping")
-                        continue
-                        
-                    total_events = DATASET_SIZES[process]
-                    events_to_download = min(args.events, total_events)
-                    num_files = (events_to_download + EVENTS_PER_FILE - 1) // EVENTS_PER_FILE
-                    
-                    print(f"\nDownloading {process} {object_type} with pileup {pileup}:")
-                    print(f"Available events: {total_events}")
-                    print(f"Will download: {events_to_download} events ({num_files} files)")
-                    
-                    # Download each chunk
-                    for chunk in range(num_files):
-                        start_event = chunk * EVENTS_PER_FILE
-                        end_event = min(
-                            (chunk + 1) * EVENTS_PER_FILE - 1,
-                            events_to_download - 1
-                        )
-                        
-                        chunk_results = downloader.download_dataset(
-                            pileup=pileup,
-                            processes=[process],
-                            object_types=[object_type],
-                            local_dir=args.output_dir,
-                            max_workers=args.workers,
-                            resume=not args.no_resume,
-                            start_event=start_event,
-                            end_event=end_event
-                        )
-                        results.update(chunk_results)
-                
-                except Exception as e:
-                    print(f"\nWarning: {str(e)}")
-                    continue
-    
-    # Print summary
+
+    # Download
+    remote_paths = [f.path for f in files]
+    results = downloader.download_files(
+        remote_paths=remote_paths,
+        local_dir=args.output_dir,
+        max_workers=args.workers,
+        resume=not args.no_resume,
+    )
+
     successful = [r for r in results.values() if r.success]
     failed = [r for r in results.values() if not r.success]
-    
-    print("\nDownload Summary:")
+
+    print("\nGet Summary:")
     print(f"Total files: {len(results)}")
     print(f"Successful: {len(successful)}")
     print(f"Failed: {len(failed)}")
-    
     if failed:
         print("\nFailed downloads:")
         for path, result in results.items():
@@ -91,27 +73,27 @@ def main():
     parser = argparse.ArgumentParser(description="ColliderML command line interface")
     subparsers = parser.add_subparsers(dest='command', help='Command to run')
     
-    # Download command
-    download_parser = subparsers.add_parser('download', help='Download datasets')
-    download_parser.add_argument('--channels', type=str,
-                               help='Comma-separated list of physics channels (e.g. ttbar,qcd)')
-    download_parser.add_argument('--pileup', type=str,
-                               help='Comma-separated list of pileup levels (single_particle,pileup-10,pileup-200)')
-    download_parser.add_argument('--objects', type=str,
-                               help='Comma-separated list of objects (e.g. tracks,calo_clusters)')
-    download_parser.add_argument('--events', type=int, default=1000,
-                               help='Number of events to download')
-    download_parser.add_argument('--output-dir', type=str, default='data',
-                               help='Directory to save downloaded files')
-    download_parser.add_argument('--workers', type=int, default=4,
-                               help='Number of parallel downloads')
-    download_parser.add_argument('--no-resume', action='store_true',
-                               help='Disable resuming partial downloads')
+    # Get command (manifest-driven)
+    get_parser = subparsers.add_parser('get', help='Get files using manifest selection')
+    get_parser.add_argument('--campaign', type=str, default='default',
+                            help='Campaign name (or "default" to use manifest default)')
+    get_parser.add_argument('--datasets', type=str,
+                            help='Comma-separated list of datasets (e.g. ttbar,qcd)')
+    get_parser.add_argument('--objects', type=str,
+                            help='Comma-separated list of objects (e.g. tracks,hits)')
+    get_parser.add_argument('--events', type=int, default=None,
+                            help='Max number of events to download (across selection)')
+    get_parser.add_argument('--output-dir', type=str, default='data',
+                            help='Directory to save downloaded files')
+    get_parser.add_argument('--workers', type=int, default=4,
+                            help='Number of parallel downloads')
+    get_parser.add_argument('--no-resume', action='store_true',
+                            help='Disable resuming partial downloads')
     
     args = parser.parse_args()
     
-    if args.command == 'download':
-        download(args)
+    if args.command == 'get':
+        get(args)
     else:
         parser.print_help()
         sys.exit(1)
