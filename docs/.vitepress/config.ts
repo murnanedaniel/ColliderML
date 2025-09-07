@@ -9,6 +9,9 @@ const config = defineConfig({
   // If using a custom domain or org/user site, adjust to '/'
   base: '/colliderml/',
   
+  // Ignore dead links for now (pages don't exist yet)
+  ignoreDeadLinks: true,
+  
   themeConfig: {
     logo: '/logo.png',
     nav: [
