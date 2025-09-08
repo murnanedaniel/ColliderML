@@ -11,7 +11,9 @@
                   "hits": [
                     { "path": "taster/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events0-99.h5", "start_event": 0, "end_event": 99 }
                   ],
-                  "particles": [],
+                  "particles": [
+                    { "path": "taster/ttbar/v2/truth/particles/full_pileup_pilot.ttbar.v2.truth.particles.events0-99.h5", "start_event": 0, "end_event": 99 }
+                  ],
                   "tracks": []
                 }
               }
