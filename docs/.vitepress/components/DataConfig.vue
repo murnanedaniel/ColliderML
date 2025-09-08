@@ -961,4 +961,8 @@ input:checked + .slider:before {
   color: var(--vp-c-text-2);
   margin-top: 2px;
 }
+
+.select-button.selected .pileup-info {
+  color: white;
+}
 </style> 
