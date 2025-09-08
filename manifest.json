@@ -1,7 +1,7 @@
 {
     "campaigns": {
       "taster": {
-        "default": false,
+        "default": true,
         "datasets": {
           "ttbar": {
             "default_version": "v2",
@@ -23,7 +23,7 @@
       },
       "full_pileup_pilot": {
         "pileup": 200,
-        "default": true,
+        "default": false,
         "datasets": {
           "ttbar": {
             "default_version": "v2",
