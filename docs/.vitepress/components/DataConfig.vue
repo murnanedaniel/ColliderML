@@ -52,7 +52,7 @@ function deriveFromManifest() {
   if (!manifest.value) return
   const campaigns = manifest.value.campaigns || {}
   
-  // Build campaign list
+  // Build campaign list - fully derived from manifest
   campaignTypes.value = Object.keys(campaigns).map(campId => {
     const camp = campaigns[campId]
     return {
@@ -73,46 +73,108 @@ function deriveFromManifest() {
     console.log('[ColliderML] selected campaign:', selectedCampaign.value, { pileup: camp.pileup, default: camp.default })
   } catch {}
 
-  // Datasets list
-  const datasets = Object.keys(camp.datasets)
-  console.log('[ColliderML] datasets in campaign', selectedCampaign.value, ':', datasets)
-  channelTypes.value = datasets.map(ds => {
-    const d = camp.datasets[ds]
-    const availableFrom = d.available || d.available_from || null
-    const isPlanned = !!availableFrom && (new Date(availableFrom) > now())
-    // Available if any objects exist in default version and not planned in the future
-    const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
-    const hasObjects = !!(defVer && defVer.objects && Object.keys(defVer.objects).length)
-    const available = hasObjects && !isPlanned
-    return { id: ds, label: ds, available }
+  // Collect ALL datasets across all campaigns to show complete picture
+  const allDatasets = new Set()
+  Object.values(campaigns).forEach(c => {
+    if (c.datasets) Object.keys(c.datasets).forEach(ds => allDatasets.add(ds))
   })
 
-  // Objects union across datasets' default versions
-  const objectsSet = new Set()
-  for (const ds of datasets) {
+  // Build dataset list for current campaign
+  const datasets = Object.keys(camp.datasets)
+  console.log('[ColliderML] datasets in campaign', selectedCampaign.value, ':', datasets)
+  
+  channelTypes.value = Array.from(allDatasets).map(ds => {
     const d = camp.datasets[ds]
-    const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
-    if (defVer && defVer.objects) {
-      console.log('[ColliderML] objects for dataset', ds, 'default_version', d.default_version, ':', Object.keys(defVer.objects))
-      Object.keys(defVer.objects).forEach(o => objectsSet.add(o))
+    if (!d) {
+      // Dataset exists in other campaigns but not this one
+      return { id: ds, label: ds.charAt(0).toUpperCase() + ds.slice(1), available: false, reason: 'other_campaign' }
     }
-  }
-  const discoveredObjects = Array.from(objectsSet)
-  console.log('[ColliderML] union of objects across datasets:', discoveredObjects)
-  objectTypes.value = discoveredObjects.map(o => {
-    // Available if at least one dataset has entries for this object and not planned
+    
+    const availableFrom = d.available || d.available_from || null
+    const isPlanned = !!availableFrom && (new Date(availableFrom) > now())
+    const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
+    const hasVersions = !!(d.versions && Object.keys(d.versions).length > 0)
+    const hasObjects = !!(defVer && defVer.objects && Object.keys(defVer.objects).some(obj => defVer.objects[obj].length > 0))
+    
     let available = false
+    let reason = null
+    
+    if (!hasVersions) {
+      reason = 'no_versions'
+    } else if (isPlanned) {
+      reason = 'future_date'
+    } else if (!hasObjects) {
+      reason = 'no_data'
+    } else {
+      available = true
+    }
+    
+    return { 
+      id: ds, 
+      label: ds.charAt(0).toUpperCase() + ds.slice(1), 
+      available,
+      reason,
+      availableDate: availableFrom
+    }
+  })
+
+  // Collect ALL possible objects across all campaigns and datasets
+  const allObjectsSet = new Set()
+  Object.values(campaigns).forEach(c => {
+    if (c.datasets) {
+      Object.values(c.datasets).forEach(d => {
+        if (d.versions) {
+          Object.values(d.versions).forEach(v => {
+            if (v.objects) {
+              Object.keys(v.objects).forEach(obj => allObjectsSet.add(obj))
+            }
+          })
+        }
+      })
+    }
+  })
+
+  const discoveredObjects = Array.from(allObjectsSet)
+  console.log('[ColliderML] all possible objects across campaigns:', discoveredObjects)
+  
+  objectTypes.value = discoveredObjects.map(o => {
+    // Check availability in current campaign
+    let available = false
+    let hasEmptyArrays = false
+    
     for (const ds of datasets) {
       const d = camp.datasets[ds]
+      if (!d) continue
+      
       const availableFrom = d.available || d.available_from || null
       const isPlanned = !!availableFrom && (new Date(availableFrom) > now())
       const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
-      if (defVer && defVer.objects && defVer.objects[o] && defVer.objects[o].length && !isPlanned) {
-        available = true
-        break
+      
+      if (defVer && defVer.objects && defVer.objects.hasOwnProperty(o)) {
+        if (defVer.objects[o].length > 0 && !isPlanned) {
+          available = true
+          break
+        } else if (defVer.objects[o].length === 0) {
+          hasEmptyArrays = true
+        }
       }
     }
-    return { id: o, label: o.replaceAll('_', ' ').replace(/\b\w/g, c => c.toUpperCase()), size: objectDisplaySizes[o] || 0, available }
+    
+    // Derive size from manifest if available, else estimate based on name
+    let size = 0
+    if (o.includes('hits')) size = 10
+    else if (o.includes('tracks')) size = 2
+    else if (o.includes('particles')) size = 10
+    else if (o.includes('calo')) size = 30
+    else size = 5 // default
+    
+    return { 
+      id: o, 
+      label: o.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
+      size,
+      available,
+      reason: available ? null : (hasEmptyArrays ? 'empty_data' : 'not_in_campaign')
+    }
   })
 }
 
