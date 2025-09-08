@@ -369,16 +369,20 @@ watchEffect(() => {
       for (const seg of segments) {
         const s = Number(seg.start_event) || 0
         const e = Number(seg.end_event) || 0
+        console.log('[ColliderML] segment range:', s, 'to', e)
         if (e >= s) {
           const segmentEvents = e - s + 1
+          console.log('[ColliderML] segment events:', segmentEvents)
           datasetMaxEvents = Math.max(datasetMaxEvents, segmentEvents)
         }
       }
     }
+    console.log('[ColliderML] dataset', ds, 'max events:', datasetMaxEvents)
     maxEvents = Math.max(maxEvents, datasetMaxEvents)
   }
   
   // Fallback to 1000 if nothing computed
+  console.log('[ColliderML] computed maxEvents before fallback:', maxEvents)
   maxAvailableEvents.value = Math.max(maxEvents, 1000)
   // Clamp current selection if needed
   if (selections.value.eventCount > maxAvailableEvents.value) {
