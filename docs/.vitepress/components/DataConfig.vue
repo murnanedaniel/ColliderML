@@ -33,7 +33,8 @@ const objectTypes = ref([])
 // Manifest fetch + derivation
 // Use bundled manifest (fetched during CI build) to avoid CORS
 const manifestUrlCandidates = [
-  '/manifest.json'  // bundled by CI from NERSC portal
+  '/ColliderML/manifest.json',  // with base path for GitHub Pages
+  '/manifest.json'  // fallback for custom domain
 ]
 const manifest = ref(null)
 const selectedCampaign = ref('taster')
