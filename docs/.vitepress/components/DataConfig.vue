@@ -31,9 +31,9 @@ const pileupTypes = ref([
 const objectTypes = ref([])
 
 // Manifest fetch + derivation
-// Always fetch live from NERSC portal
+// Use bundled manifest (fetched during CI build) to avoid CORS
 const manifestUrlCandidates = [
-  'https://portal.nersc.gov/cfs/m4958/ColliderML/manifest.json'
+  '/manifest.json'  // bundled by CI from NERSC portal
 ]
 const manifest = ref(null)
 const selectedCampaign = ref('taster')
