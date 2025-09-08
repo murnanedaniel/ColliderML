@@ -15,7 +15,9 @@
                   "particles": [
                     { "path": "taster/ttbar/v2/truth/particles/full_pileup_pilot.ttbar.v2.truth.particles.events0-99.h5", "start_event": 0, "end_event": 99 }
                   ],
-                  "tracks": []
+                  "tracks": [],
+                  "calo_hits": [],
+                  "calo_clusters": []
                 }
               }
             }
@@ -33,10 +35,24 @@
               "v2": {
                 "objects": {
                 "hits": [
-                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events0-99.h5", "start_event": 0, "end_event": 99 }
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events0-999.h5", "start_event": 0, "end_event": 999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events1000-1999.h5", "start_event": 1000, "end_event": 1999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events2000-2999.h5", "start_event": 2000, "end_event": 2999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events3000-3999.h5", "start_event": 3000, "end_event": 3999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events4000-4999.h5", "start_event": 4000, "end_event": 4999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events5000-5999.h5", "start_event": 5000, "end_event": 5999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events6000-6999.h5", "start_event": 6000, "end_event": 6999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events7000-7999.h5", "start_event": 7000, "end_event": 7999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events8000-8999.h5", "start_event": 8000, "end_event": 8999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events9000-9999.h5", "start_event": 9000, "end_event": 9999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events10000-10999.h5", "start_event": 10000, "end_event": 10999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events11000-11999.h5", "start_event": 11000, "end_event": 11999 },
+                    { "path": "full_pileup_pilot/ttbar/v2/reco/tracker_hits/full_pileup_pilot.ttbar.v2.reco.tracker_hits.events12000-12999.h5", "start_event": 12000, "end_event": 12999 }
                   ],
                   "particles": [],
-                  "tracks": []
+                  "tracks": [],
+                  "calo_hits": [],
+                  "calo_clusters": []
                 }
               }
             }
@@ -54,7 +70,9 @@
                 "objects": {
                   "hits": [],
                   "particles": [],
-                  "tracks": []
+                  "tracks": [],
+                  "calo_hits": [],
+                  "calo_clusters": []
                 }
               }
             }
@@ -67,7 +85,9 @@
                 "objects": {
                   "hits": [],
                   "particles": [],
-                  "tracks": []
+                  "tracks": [],
+                  "calo_hits": [],
+                  "calo_clusters": []
                 }
               }
             }
@@ -80,7 +100,9 @@
                 "objects": {
                   "hits": [],
                   "particles": [],
-                  "tracks": []
+                  "tracks": [],
+                  "calo_hits": [],
+                  "calo_clusters": []
                 }
               }
             }
@@ -93,7 +115,9 @@
                 "objects": {
                   "hits": [],
                   "particles": [],
-                  "tracks": []
+                  "tracks": [],
+                  "calo_hits": [],
+                  "calo_clusters": []
                 }
               }
             }
@@ -106,7 +130,9 @@
                 "objects": {
                   "hits": [],
                   "particles": [],
-                  "tracks": []
+                  "tracks": [],
+                  "calo_hits": [],
+                  "calo_clusters": []
                 }
               }
             }
@@ -119,7 +145,9 @@
                 "objects": {
                   "hits": [],
                   "particles": [],
-                  "tracks": []
+                  "tracks": [],
+                  "calo_hits": [],
+                  "calo_clusters": []
                 }
               }
             }
@@ -132,7 +160,9 @@
                 "objects": {
                   "hits": [],
                   "particles": [],
-                  "tracks": []
+                  "tracks": [],
+                  "calo_hits": [],
+                  "calo_clusters": []
                 }
               }
             }
