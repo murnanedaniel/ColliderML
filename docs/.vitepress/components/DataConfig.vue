@@ -381,9 +381,9 @@ watchEffect(() => {
     maxEvents = Math.max(maxEvents, datasetMaxEvents)
   }
   
-  // Fallback to 1000 if nothing computed
+  // Use computed value or fallback to 100 if nothing computed
   console.log('[ColliderML] computed maxEvents before fallback:', maxEvents)
-  maxAvailableEvents.value = Math.max(maxEvents, 1000)
+  maxAvailableEvents.value = maxEvents > 0 ? maxEvents : 100
   // Clamp current selection if needed
   if (selections.value.eventCount > maxAvailableEvents.value) {
     selections.value.eventCount = maxAvailableEvents.value
