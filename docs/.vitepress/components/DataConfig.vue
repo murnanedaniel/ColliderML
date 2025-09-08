@@ -351,25 +351,35 @@ watchEffect(() => {
   if (!camp) return
   const selectedDatasets = selections.value.channels
   const selectedObjects = selections.value.objects
-  let total = 0
+  let maxEvents = 0
   console.log('[ColliderML] recomputing maxAvailableEvents for datasets', selectedDatasets, 'objects', selectedObjects)
+  
   for (const ds of selectedDatasets) {
     const d = camp.datasets?.[ds]
     if (!d) continue
     const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
     if (!defVer || !defVer.objects) continue
+    
+    // For each dataset, find the maximum event range across all selected objects
+    // (objects in the same dataset share the same event ranges)
+    let datasetMaxEvents = 0
     for (const obj of selectedObjects) {
       const segments = defVer.objects[obj] || []
       console.log('[ColliderML] segments for', ds, obj, ':', segments)
       for (const seg of segments) {
         const s = Number(seg.start_event) || 0
         const e = Number(seg.end_event) || 0
-        if (e >= s) total += (e - s + 1)
+        if (e >= s) {
+          const segmentEvents = e - s + 1
+          datasetMaxEvents = Math.max(datasetMaxEvents, segmentEvents)
+        }
       }
     }
+    maxEvents = Math.max(maxEvents, datasetMaxEvents)
   }
+  
   // Fallback to 1000 if nothing computed
-  maxAvailableEvents.value = Math.max(total, 1000)
+  maxAvailableEvents.value = Math.max(maxEvents, 1000)
   // Clamp current selection if needed
   if (selections.value.eventCount > maxAvailableEvents.value) {
     selections.value.eventCount = maxAvailableEvents.value
