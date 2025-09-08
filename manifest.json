@@ -1,6 +1,7 @@
 {
     "campaigns": {
       "taster": {
+        "pileup": 200,
         "default": true,
         "datasets": {
           "ttbar": {
@@ -27,7 +28,7 @@
         "datasets": {
           "ttbar": {
             "default_version": "v2",
-            "available": "2025-09-07",
+            "available": "2025-09-09",
             "versions": {
               "v2": {
                 "objects": {
