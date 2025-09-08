@@ -472,7 +472,7 @@ const maxAvailableIndex = eventCountValues.length - 1
         </div>
         <div class="button-grid">
           <button
-            v-for="channel in channelTypes.filter(c => isSelected('channels', c.id) || expanded.channels)"
+            v-for="channel in channelTypes.filter(c => c.available || expanded.channels)"
             :key="channel.id"
             class="select-button"
             :class="{ 
@@ -508,7 +508,7 @@ const maxAvailableIndex = eventCountValues.length - 1
         </div>
         <div class="button-grid">
           <button
-            v-for="obj in objectTypes.filter(o => isSelected('objects', o.id) || expanded.objects)"
+            v-for="obj in objectTypes.filter(o => o.available || expanded.objects)"
             :key="obj.id"
             class="select-button"
             :class="{ 
