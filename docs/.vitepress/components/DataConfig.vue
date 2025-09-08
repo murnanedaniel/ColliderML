@@ -3,29 +3,24 @@ import { ref, computed, onMounted, watchEffect } from 'vue'
 
 const selections = ref({
   channels: ['ttbar'],
-  pileup: ['pileup-10'],
-  objects: ['tracks'],
+  objects: ['hits'],
   processing: {
     merge: false,
     pytorch: false
   },
-  eventCount: 1000 // Default value
+  eventCount: 100 // Default value
 })
 
 const expanded = ref({
   channels: false,
-  pileup: false,
   objects: false
 })
 
+// Campaigns (derived from manifest)
+const campaignTypes = ref([])
+
 // Datasets (derived from manifest)
 const channelTypes = ref([])
-
-const pileupTypes = ref([
-  { id: 'single_particle', label: 'Single Particle', available: false },
-  { id: 'pileup-10', label: '<μ>=10', available: false },
-  { id: 'pileup-200', label: '<μ>=200', available: false }
-])
 
 // Objects (derived from manifest)
 const objectTypes = ref([])
@@ -56,6 +51,19 @@ const now = () => new Date()
 function deriveFromManifest() {
   if (!manifest.value) return
   const campaigns = manifest.value.campaigns || {}
+  
+  // Build campaign list
+  campaignTypes.value = Object.keys(campaigns).map(campId => {
+    const camp = campaigns[campId]
+    return {
+      id: campId,
+      label: campId.charAt(0).toUpperCase() + campId.slice(1).replace(/_/g, ' '),
+      pileup: camp.pileup,
+      available: true, // campaigns are always selectable
+      default: camp.default || false
+    }
+  })
+  
   const camp = campaigns[selectedCampaign.value]
   if (!camp || !camp.datasets) return
 
@@ -64,17 +72,6 @@ function deriveFromManifest() {
     console.log('[ColliderML] campaigns:', Object.keys(campaigns))
     console.log('[ColliderML] selected campaign:', selectedCampaign.value, { pileup: camp.pileup, default: camp.default })
   } catch {}
-
-  // Pileup from campaign if present; enable corresponding pileup button
-  // Expect e.g. { pileup: 200 } -> select 'pileup-200'
-  if (camp.pileup) {
-    const pid = `pileup-${camp.pileup}`
-    pileupTypes.value = pileupTypes.value.map(p => ({ ...p, available: p.id === pid }))
-    // Initialize selection to campaign pileup if not already selected
-    if (!selections.value.pileup.includes(pid)) {
-      selections.value.pileup = [pid]
-    }
-  }
 
   // Datasets list
   const datasets = Object.keys(camp.datasets)
@@ -148,45 +145,29 @@ onMounted(async () => {
   // No manifest available; proceed with empty defaults
 })
 
-// Add scaling factors for pileup types
-const pileupScaling = {
-  'pileup-200': 1.0,    // Full size
-  'pileup-10': 0.1,     // 10% of full size
-  'single_particle': 0.01  // 1% of full size
-}
 
 // Base size calculation per channel
 const baseChannelSizeGB = computed(() => {
-  // This is the size for 100,000 events
+  // This is the size for 1,000 events
   return selections.value.objects.reduce((total, id) => {
     const obj = objectTypes.value.find(o => o.id === id)
     return total + (obj?.size || 0)
   }, 0)
 })
 
-// Total size calculation accounting for channels and pileup
+// Total size calculation accounting for channels 
 const rawSizeGB = computed(() => {
   const channelCount = selections.value.channels.length
   console.log('Channel count:', channelCount)
   if (channelCount === 0) return 0
 
   // Log base channel size
-  console.log('Base channel size (GB per 100,000 events):', baseChannelSizeGB.value)
+  console.log('Base channel size (GB per 1,000 events):', baseChannelSizeGB.value)
 
-  // First get size for 1000 events with pileup
-  const sizeFor100_000Events = selections.value.pileup.reduce((total, pileupType) => {
-    const scaling = pileupScaling[pileupType] || 0
-    console.log(`Pileup type: ${pileupType}, scaling: ${scaling}`)
-    const size = baseChannelSizeGB.value * channelCount * scaling
-    console.log(`Size after pileup scaling: ${size}GB`)
-    return total + size
-  }, 0)
-  console.log('Size for 100,000 events:', sizeFor100_000Events)
-
-  // Then scale down to actual event count
-  const finalSize = sizeFor100_000Events * (selections.value.eventCount / 1000)
+  // Get size for selected event count
+  const finalSize = baseChannelSizeGB.value * channelCount * (selections.value.eventCount / 1000)
   console.log(`Event count: ${selections.value.eventCount}`)
-  console.log(`Final size after event scaling: ${finalSize}GB`)
+  console.log(`Final size: ${finalSize}GB`)
   return finalSize
 })
 
@@ -237,9 +218,7 @@ const command = computed(() => {
 const toggleItem = (category, id) => {
   // Only toggle if the item is available
   const items = selections.value[category]
-  const itemList = category === 'channels' ? channelTypes.value : 
-                  category === 'pileup' ? pileupTypes :
-                  objectTypes.value
+  const itemList = category === 'channels' ? channelTypes.value : objectTypes.value
   const item = itemList.find(i => i.id === id)
   
   if (!item?.available) return // Don't toggle if not available
@@ -263,7 +242,7 @@ const deselectAll = (category) => {
   selections.value[category] = []
 }
 
-const isSelected = (category, id) => selections.value[category].includes(id)
+const isSelected = (category, id) => selections.value[category] && selections.value[category].includes(id)
 
 const toggleExpand = (category) => {
   expanded.value[category] = !expanded.value[category]
@@ -380,6 +359,29 @@ const maxAvailableIndex = eventCountValues.length - 1
     <div class="config-panel">
       <h3>Dataset Configuration</h3>
       
+      <!-- Campaign Card -->
+      <div class="config-card">
+        <div class="card-header">
+          <h4>Campaign</h4>
+        </div>
+        <div class="button-grid">
+          <button
+            v-for="campaign in campaignTypes"
+            :key="campaign.id"
+            class="select-button"
+            :class="{ 
+              selected: selectedCampaign === campaign.id,
+              inactive: !campaign.available 
+            }"
+            @click="selectedCampaign = campaign.id"
+          >
+            {{ campaign.label }}
+            <span v-if="campaign.pileup" class="pileup-info">⟨μ⟩={{ campaign.pileup }}</span>
+            <span v-if="!campaign.available" class="coming-soon">Coming Soon</span>
+          </button>
+        </div>
+      </div>
+      
       <!-- Channels Card -->
       <div class="config-card">
         <div class="card-header">
@@ -415,40 +417,6 @@ const maxAvailableIndex = eventCountValues.length - 1
         </div>
       </div>
       
-      <!-- Pile-up Card -->
-      <div class="config-card">
-        <div class="card-header">
-          <h4>Pile-up</h4>
-          <button class="expand-button" :class="{ expanded: expanded.pileup }" @click="toggleExpand('pileup')">
-            {{ expanded.pileup ? '↑ Show Less' : '↓ Show More' }}
-          </button>
-        </div>
-        <div class="button-grid">
-          <button
-            v-for="pu in pileupTypes.filter(p => isSelected('pileup', p.id) || expanded.pileup)"
-            :key="pu.id"
-            class="select-button"
-            :class="{ 
-              selected: isSelected('pileup', pu.id),
-              inactive: !pu.available 
-            }"
-            @click="toggleItem('pileup', pu.id)"
-          >
-            {{ pu.label }}
-            <span v-if="!pu.available" class="coming-soon">Coming Soon</span>
-          </button>
-        </div>
-        <div v-if="expanded.pileup" class="select-all">
-          <div class="button-group">
-            <button class="select-all-button" @click="deselectAll('pileup')">
-              Deselect All
-            </button>
-            <button class="select-all-button" @click="selectAll('pileup', pileupTypes)">
-              Select All
-            </button>
-          </div>
-        </div>
-      </div>
       
       <!-- Objects Card -->
       <div class="config-card">
@@ -985,5 +953,12 @@ input:checked + .slider:before {
   font-style: italic;
   margin-top: 3.0rem;
   opacity: 0.7;
+}
+
+.pileup-info {
+  font-size: 0.8em;
+  display: block;
+  color: var(--vp-c-text-2);
+  margin-top: 2px;
 }
 </style> 
