@@ -58,6 +58,28 @@ class DataDownloader:
             if not any_ok:
                 raise RuntimeError("Failed to connect to any data URLs")
 
+    def _parse_remote_metadata(self, remote_path: str) -> Dict:
+        """Parse campaign/dataset/version/data_type/object and filename from remote path.
+
+        Returns minimal dict for logging and path derivation. Falls back to filename only.
+        """
+        try:
+            # remote_path like: taster/ttbar/v2/reco/tracker_hits/....events0-99.h5
+            parts = Path(remote_path).parts
+            # Expect .../<campaign>/<dataset>/<version>/<data_type>/<object>/<filename>
+            if len(parts) >= 6:
+                return {
+                    "campaign": parts[-6],
+                    "dataset": parts[-5],
+                    "version": parts[-4],
+                    "data_type": parts[-3],
+                    "object": parts[-2],
+                    "filename": parts[-1],
+                }
+        except Exception:
+            pass
+        return {"filename": os.path.basename(remote_path)}
+
     def _derive_local_path(self, remote_path: str, local_dir: Path) -> Path:
         """Derive a hierarchical local path from a ColliderML filename.
 
@@ -140,11 +162,13 @@ class DataDownloader:
                 response = self.session.get(url, stream=True, timeout=self._timeout)
                 response.raise_for_status()
                 
-                # Download with progress bar
+                # Download with progress bar, show object type if parseable
+                meta = self._parse_remote_metadata(remote_path)
+                desc = meta.get("object") + ": " + meta.get("filename") if meta.get("object") else local_path.name
                 with tqdm(
                     unit='B',
                     unit_scale=True,
-                    desc=local_path.name
+                    desc=desc
                 ) as pbar:
                     with open(local_path, 'wb') as f:
                         for chunk in response.iter_content(chunk_size=self.chunk_size):
