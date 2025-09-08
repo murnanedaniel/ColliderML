@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watchEffect } from 'vue'
 
 const selections = ref({
   channels: ['ttbar'],
-  objects: ['hits'],
+  objects: [], // Will be auto-populated with available objects
   processing: {
     merge: false,
     pytorch: false
@@ -176,6 +176,10 @@ function deriveFromManifest() {
       reason: available ? null : (hasEmptyArrays ? 'empty_data' : 'not_in_campaign')
     }
   })
+
+  // Auto-select all available objects for the current campaign
+  const availableObjects = objectTypes.value.filter(obj => obj.available).map(obj => obj.id)
+  selections.value.objects = availableObjects
 }
 
 onMounted(async () => {
@@ -515,37 +519,22 @@ const maxAvailableIndex = eventCountValues.length - 1
         </div>
       </div>
 
-      <!-- Processing and Estimation Card -->
+      <!-- Estimation Card -->
       <div class="config-card">
-        <div class="processing-estimation-grid">
-          <!-- Processing Section -->
-          <div class="processing-section">
-            <h4>Processing</h4>
-            <div class="processing-options">
-              <label class="switch">
-                <input type="checkbox" v-model="selections.processing.pytorch">
-                <span class="slider"></span>
-                <span class="label">PyTorch Ready</span>
-              </label>
+        <div class="estimation-section">
+          <h4>Estimation</h4>
+          <div class="estimates">
+            <div class="estimate-item">
+              <span class="label">Size</span>
+              <div class="value-box">{{ estimatedSize }}</div>
             </div>
-          </div>
-
-          <!-- Estimation Section -->
-          <div class="estimation-section">
-            <h4>Estimation</h4>
-            <div class="estimates">
-              <div class="estimate-item">
-                <span class="label">Size</span>
-                <div class="value-box">{{ estimatedSize }}</div>
-              </div>
-              <div class="estimate-item">
-                <span class="label">Time</span>
-                <div class="value-box">~{{ estimatedTime }}</div>
-              </div>
-              <div class="estimate-item">
-                <span class="label">Speed</span>
-                <div class="value-box">150MB/s</div>
-              </div>
+            <div class="estimate-item">
+              <span class="label">Time</span>
+              <div class="value-box">~{{ estimatedTime }}</div>
+            </div>
+            <div class="estimate-item">
+              <span class="label">Speed</span>
+              <div class="value-box">150MB/s</div>
             </div>
           </div>
         </div>
