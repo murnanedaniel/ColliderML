@@ -42,6 +42,13 @@ pip install -e ".[dev]"
 
 ## Quick Start
 
+### CLI
+
+```bash
+# Download 100 events from the taster campaign into ./data
+colliderml get -c taster -e 100 -O data
+```
+
 ```python
 from colliderml.core.data.manifest import ManifestClient
 from colliderml.core.io import DataDownloader
