@@ -18,7 +18,8 @@ The ColliderML dataset provides comprehensive simulation data for machine learni
 
 1. Create an environment
 ```bash
-conda create -n colliderml python=3.10
+conda create -n colliderml-env python=3.11
+conda activate colliderml-env
 ```
 2. Pip install
 ```bash
@@ -35,7 +36,7 @@ pip install colliderml
 </details>
 <!-- ::: -->
 
-3. Run `colliderml download` with your configuration:
+3. Run `colliderml get` with your configuration:
 
 <DataConfig />
 
