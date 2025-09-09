@@ -20,6 +20,10 @@ This work is made possible by a generous NERSC computing allocation: This resear
 
 DM is supported by Danish Data Science Academy, which is funded by the Novo Nordisk Foundation (NNF21SA0069429)
 
+## Bugs and Feedback
+
+If you encounter any bugs or have any feedback, please [open an issue](https://github.com/murnanedaniel/colliderml/issues) on the GitHub repository. You can also contact [daniel.thomas.murnane@cern.ch](mailto:daniel.thomas.murnane@cern.ch).
+
 ## References
 
 The below references are cited in the ColliderML ACAT 2025 contribution.
