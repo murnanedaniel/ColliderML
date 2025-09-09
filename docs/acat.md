@@ -14,6 +14,12 @@ Data is progressively being migrated to the NERSC Public Portal, so if you don't
 
 We are striving to provide sample data (a "taster") ahead of each full release, to allow for early testing and development.
 
+## Acknowledgments
+
+This work is made possible by a generous NERSC computing allocation: This research used resources of the National Energy Research Scientific Computing Center, a DOE Office of Science User Facility supported by the Office of Science of the U.S. Department of Energy under Contract No. DE-AC02-05CH11231 using NERSC award HEP-ERCAP0034031.
+
+DM is supported by Danish Data Science Academy, which is funded by the Novo Nordisk Foundation (NNF21SA0069429)
+
 ## References
 
 The below references are cited in the ColliderML ACAT 2025 contribution.
