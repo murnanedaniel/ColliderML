@@ -344,6 +344,58 @@ const eventCountValues = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 
 
 const maxAvailableEvents = ref(1000)
 
+// Interval helpers for event coverage computations
+function mergeIntervals(intervals) {
+  if (!intervals || intervals.length === 0) return []
+  const sorted = intervals
+    .map(([s, e]) => [Number(s) || 0, Number(e) || 0])
+    .filter(([s, e]) => e >= s)
+    .sort((a, b) => a[0] - b[0])
+  const merged = []
+  let [curS, curE] = sorted[0]
+  for (let i = 1; i < sorted.length; i++) {
+    const [s, e] = sorted[i]
+    if (s <= curE + 1) {
+      // overlap or adjacent → merge
+      curE = Math.max(curE, e)
+    } else {
+      merged.push([curS, curE])
+      ;[curS, curE] = [s, e]
+    }
+  }
+  merged.push([curS, curE])
+  return merged
+}
+
+function intersectTwo(a, b) {
+  const res = []
+  let i = 0, j = 0
+  while (i < a.length && j < b.length) {
+    const [s1, e1] = a[i]
+    const [s2, e2] = b[j]
+    const s = Math.max(s1, s2)
+    const e = Math.min(e1, e2)
+    if (e >= s) res.push([s, e])
+    if (e1 < e2) i++
+    else j++
+  }
+  return res
+}
+
+function intersectAll(lists) {
+  if (!lists || lists.length === 0) return []
+  let cur = lists[0]
+  for (let k = 1; k < lists.length; k++) {
+    cur = intersectTwo(cur, lists[k])
+    if (cur.length === 0) return []
+  }
+  return cur
+}
+
+function sumIntervals(intervals) {
+  return intervals.reduce((acc, [s, e]) => acc + (Number(e) - Number(s) + 1), 0)
+}
+
 // Recompute max available events from manifest based on current selections
 watchEffect(() => {
   if (!manifest.value) return
@@ -351,39 +403,36 @@ watchEffect(() => {
   if (!camp) return
   const selectedDatasets = selections.value.channels
   const selectedObjects = selections.value.objects
-  let maxEvents = 0
+  let totalEvents = 0
   console.log('[ColliderML] recomputing maxAvailableEvents for datasets', selectedDatasets, 'objects', selectedObjects)
-  
+
   for (const ds of selectedDatasets) {
     const d = camp.datasets?.[ds]
     if (!d) continue
     const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
     if (!defVer || !defVer.objects) continue
-    
-    // For each dataset, find the maximum event range across all selected objects
-    // (objects in the same dataset share the same event ranges)
-    let datasetMaxEvents = 0
+
+    // Build merged intervals per selected object
+    const perObjectIntervals = []
     for (const obj of selectedObjects) {
       const segments = defVer.objects[obj] || []
-      console.log('[ColliderML] segments for', ds, obj, ':', segments)
-      for (const seg of segments) {
-        const s = Number(seg.start_event) || 0
-        const e = Number(seg.end_event) || 0
-        console.log('[ColliderML] segment range:', s, 'to', e)
-        if (e >= s) {
-          const segmentEvents = e - s + 1
-          console.log('[ColliderML] segment events:', segmentEvents)
-          datasetMaxEvents = Math.max(datasetMaxEvents, segmentEvents)
-        }
-      }
+      const intervals = segments.map(seg => [Number(seg.start_event) || 0, Number(seg.end_event) || 0])
+      const merged = mergeIntervals(intervals)
+      console.log('[ColliderML] merged intervals for', ds, obj, ':', merged)
+      // If the object isn't present at all, treat as empty -> intersection will be empty
+      perObjectIntervals.push(merged)
     }
-    console.log('[ColliderML] dataset', ds, 'max events:', datasetMaxEvents)
-    maxEvents = Math.max(maxEvents, datasetMaxEvents)
+
+    // Intersect across objects to get common coverage within this dataset
+    const common = intersectAll(perObjectIntervals)
+    const datasetTotal = sumIntervals(common)
+    console.log('[ColliderML] dataset', ds, 'common coverage intervals:', common, 'total:', datasetTotal)
+    totalEvents += datasetTotal
   }
-  
+
   // Use computed value or fallback to 100 if nothing computed
-  console.log('[ColliderML] computed maxEvents before fallback:', maxEvents)
-  maxAvailableEvents.value = maxEvents > 0 ? maxEvents : 100
+  console.log('[ColliderML] computed total events before fallback:', totalEvents)
+  maxAvailableEvents.value = totalEvents > 0 ? totalEvents : 100
   // Clamp current selection if needed
   if (selections.value.eventCount > maxAvailableEvents.value) {
     selections.value.eventCount = maxAvailableEvents.value
