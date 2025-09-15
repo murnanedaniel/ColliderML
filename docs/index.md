@@ -27,14 +27,13 @@ pip install colliderml
 ```
 
 <!-- ::: tip New to ColliderML? -->
-<details class="custom-block">
+<!-- <details class="custom-block">
 <summary>👉 New to ColliderML? Click here for optional introductory data download</summary>
 
 3. Run `colliderml taster --notebooks` to get a small test dataset and example notebooks
 4. Open the intro notebook (or follow along in the [Tutorials](/tutorials) section)
 
-</details>
-<!-- ::: -->
+</details> -->
 
 3. Run `colliderml get` with your configuration:
 
