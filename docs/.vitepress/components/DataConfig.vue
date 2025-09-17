@@ -662,7 +662,6 @@ const maxAvailableIndex = eventCountValues.length - 1
       </div>
     </div>
   </div>
-  <p class="footnote">* Particle truth information and event-level information are included by default.</p>
 </template>
 
 <style scoped>

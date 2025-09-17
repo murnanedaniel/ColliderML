@@ -38,4 +38,5 @@ pip install colliderml
 
 <DataConfig />
 
+If there are errors or unexpected behavior, please [open an issue](https://github.com/murnanedaniel/colliderml/issues) on the GitHub repository.
 
