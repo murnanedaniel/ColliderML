@@ -30,7 +30,7 @@ class DataDownloader:
         base_urls: List[str] = None,
         chunk_size: int = 8192,
         validate_urls: bool = True,
-        request_timeout_seconds: int = 5
+        connect_timeout_seconds: int = 10,
     ):
         """Initialize the downloader.
         
@@ -42,7 +42,8 @@ class DataDownloader:
         self.base_urls = base_urls or DEFAULT_URLS
         self.chunk_size = chunk_size
         self.session = requests.Session()
-        self._timeout = request_timeout_seconds
+        # requests timeout as (connect, read). read=None disables read timeout
+        self._timeout = (connect_timeout_seconds, None)
 
         # Optionally validate base URLs early to provide fast failure in CI/tests
         if validate_urls:
