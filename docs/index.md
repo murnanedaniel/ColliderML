@@ -39,4 +39,13 @@ pip install colliderml
 <DataConfig />
 
 If there are errors or unexpected behavior, please [open an issue](https://github.com/murnanedaniel/colliderml/issues) on the GitHub repository.
-
+<!-- CHANGELOG:DATASET:START -->
+::: details Dataset Changelog (latest 5)
+- (0.4.2 — 2025-09-17) - Added public S3 mirrors for Run-3 samples with resume support.
+- (0.4.2 — 2025-09-17) - Updated detector geometry to v3.2 for calorimeter segmentation.
+- (0.4.1 — 2025-08-30) - Released "taster" dataset with 1k events per class and example notebooks.
+- (0.4.1 — 2025-08-30) - Deprecated legacy download endpoint; use the regional endpoints instead.
+- (0.4.0 — 2025-08-12) - Introduced per-object reconstruction labels (tracks, clusters, jets) in parquet.
+See the full changelog: [Changelog](/changelog).
+:::
+<!-- CHANGELOG:DATASET:END -->
