@@ -1,9 +1,5 @@
 # ColliderML
 
-::: warning Dataset Migration in Progress
-⚠️ The dataset is currently being migrated to a public location. Some downloads may be temporarily unavailable. Please check back soon or contact us for more information.
-:::
-
 <AboutData>
 
 The ColliderML dataset is the largest-yet source of full-detail simulation in a virtual detector experiment.
@@ -16,36 +12,37 @@ The ColliderML dataset provides comprehensive simulation data for machine learni
 
 ## Get the Data
 
-1. Create an environment
+The ColliderML datasets are hosted on [HuggingFace](https://huggingface.co/OpenDataDetector) and can be accessed using the `datasets` library.
+
+### Quick Start
+
+1. Install the datasets library:
 ```bash
-conda create -n colliderml-env python=3.11 -y && conda activate colliderml-env
-```
-2. Pip install
-```bash
-pip install colliderml
+pip install datasets
 ```
 
-<!-- ::: tip New to ColliderML? -->
-<!-- <details class="custom-block">
-<summary>👉 New to ColliderML? Click here for optional introductory data download</summary>
+2. Load a dataset:
+```python
+from datasets import load_dataset
 
-3. Run `colliderml taster --notebooks` to get a small test dataset and example notebooks
-4. Open the intro notebook (or follow along in the [Tutorials](/tutorials) section)
+# Load particles data from ttbar events (no pileup)
+dataset = load_dataset("OpenDataDetector/ColliderML_ttbar_pu0", "particles")
+```
 
-</details> -->
+### Interactive Configuration
 
-3. Run `colliderml get` with your configuration:
+Use the configurator below to customize your dataset selection and generate the corresponding code:
 
 <DataConfig />
 
 If there are errors or unexpected behavior, please [open an issue](https://github.com/murnanedaniel/colliderml/issues) on the GitHub repository.
 <!-- CHANGELOG:DATASET:START -->
 ::: details Dataset Changelog (latest 5)
-- (0.4.2 — 2025-09-17) - Added public S3 mirrors for Run-3 samples with resume support.
-- (0.4.2 — 2025-09-17) - Updated detector geometry to v3.2 for calorimeter segmentation.
-- (0.4.1 — 2025-08-30) - Released "taster" dataset with 1k events per class and example notebooks.
-- (0.4.1 — 2025-08-30) - Deprecated legacy download endpoint; use the regional endpoints instead.
-- (0.4.0 — 2025-08-12) - Introduced per-object reconstruction labels (tracks, clusters, jets) in parquet.
+- (0.2.0 — 2025-11-07) - Datasets now hosted on HuggingFace Hub for easier access and distribution.
+- (0.2.0 — 2025-11-07) - Support for standard HuggingFace `datasets` library for data loading.
+- (0.2.0 — 2025-11-07) - Migrated from NERSC manifest-based distribution to HuggingFace datasets.
+- (0.2.0 — 2025-11-07) - Data now stored in Parquet format with improved compression and accessibility.
+- (0.1.0 — 2025-09-08) - Initial release of ColliderML dataset with ttbar and ggf physics processes.
 See the full changelog: [Changelog](/changelog).
 :::
 <!-- CHANGELOG:DATASET:END -->

@@ -4,59 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
-## [0.4.2] - 2025-09-17
+## [0.2.0] - 2025-11-07
 
 ### Added
-- [dataset] Added public S3 mirrors for Run-3 samples with resume support.
-- [library] New `colliderml get` option `--verify-checksums` for end-to-end integrity.
+- [dataset] Datasets now hosted on HuggingFace Hub for easier access and distribution.
+- [dataset] Support for standard HuggingFace `datasets` library for data loading.
+- [docs] Interactive dataset configurator with dynamic channel discovery from HuggingFace API.
+- [docs] Updated documentation site with HuggingFace integration examples.
 
 ### Changed
-- [dataset] Updated detector geometry to v3.2 for calorimeter segmentation.
+- [dataset] Migrated from NERSC manifest-based distribution to HuggingFace datasets.
+- [dataset] Data now stored in Parquet format with improved compression and accessibility.
+- [docs] Simplified data access workflow using `load_dataset()` instead of custom CLI.
 
-### Fixed
-- [library] Resolved Windows path handling in CLI subcommands.
+### Removed
+- [docs] Removed NERSC manifest.json dependency from documentation build process.
 
-## [0.4.1] - 2025-08-30
-
-### Added
-- [dataset] Released "taster" dataset with 1k events per class and example notebooks.
-- [library] Added download progress bars and ETA to the CLI.
-
-### Deprecated
-- [dataset] Deprecated legacy download endpoint; use the regional endpoints instead.
-
-## [0.4.0] - 2025-08-12
+## [0.1.0] - 2025-09-08
 
 ### Added
-- [dataset] Introduced per-object reconstruction labels (tracks, clusters, jets) in parquet.
-- [library] Added `DataConfig` schema validation with helpful error messages.
-
-### Changed
-- [dataset] Standardized units to GeV and mm across all tables.
-
-## [0.3.3] - 2025-07-22
-
-### Fixed
-- [dataset] Corrected jet energy scale for high-η region (v2.9 → v3.0).
-- [library] Fixed retry logic edge case when resuming partial downloads.
-
-## [0.3.2] - 2025-07-05
-
-### Added
-- [dataset] Published validation splits for electron/photon samples.
-- [library] Added `colliderml taster --notebooks` convenience flag.
-
-## [0.3.0] - 2025-06-14
-
-### Added
-- [dataset] First public release of Run-3 simulated samples with full detector response.
-- [library] Initial release of `colliderml` CLI and Python API.
-
-### Security
-- [library] Pinned transitive dependencies to address CVE advisories.
+- [dataset] Initial release of ColliderML dataset with ttbar and ggf physics processes.
+- [dataset] Four detector hierarchy levels: particles, tracker_hits, calo_hits, and tracks.
+- [dataset] Approximately 100,000 simulated events per process with no pileup (pu0).
+- [library] Initial `colliderml` Python library with data access utilities.
+- [docs] Documentation website with VitePress framework.
+- [docs] Dataset configuration modal for exploring available data.
 
 ---
 
-Unreleased changes should be added under a `## [Unreleased]` header above with entries marked as `[dataset]` or `[library]`.
-
-
+Unreleased changes should be added under a `## [Unreleased]` header above with entries marked as `[dataset]`, `[library]`, or `[docs]`.

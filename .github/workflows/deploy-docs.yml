@@ -20,11 +20,6 @@ jobs:
       - name: Install docs dependencies
         run: npm ci --prefix docs
 
-      - name: Fetch manifest
-        run: |
-          mkdir -p docs/public
-          curl -fsSL https://portal.nersc.gov/cfs/m4958/ColliderML/manifest.json -o docs/public/manifest.json || echo '{}' > docs/public/manifest.json
-
       - name: Build docs
         run: npm run --prefix docs docs:build
 

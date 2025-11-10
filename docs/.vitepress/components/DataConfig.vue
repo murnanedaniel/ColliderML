@@ -1,14 +1,11 @@
 <script setup>
-import { ref, computed, onMounted, watchEffect } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 const selections = ref({
   channels: ['ttbar'],
-  objects: [], // Will be auto-populated with available objects
-  processing: {
-    merge: false,
-    pytorch: false
-  },
-  eventCount: 100 // Default value
+  pileup: 'pu0',
+  objects: ['particles', 'tracker_hits', 'calo_hits', 'tracks'],
+  eventCount: 1000
 })
 
 const expanded = ref({
@@ -16,299 +13,234 @@ const expanded = ref({
   objects: false
 })
 
-// Campaigns (derived from manifest)
-const campaignTypes = ref([])
-
-// Datasets (derived from manifest)
+// Available data from HuggingFace
 const channelTypes = ref([])
+const pileupTypes = ref([])
+const loading = ref(true)
 
-// Objects (derived from manifest)
-const objectTypes = ref([])
-
-// Manifest fetch + derivation
-// Use bundled manifest (fetched during CI build) to avoid CORS
-const manifestUrlCandidates = [
-  '/ColliderML/manifest.json',  // with base path for GitHub Pages
-  '/manifest.json'  // fallback for custom domain
+// Fixed object types for all ColliderML datasets (sizes loaded dynamically)
+const objectTypes = [
+  { id: 'particles', label: 'Particles', description: 'Truth-level particle data' },
+  { id: 'tracker_hits', label: 'Tracker Hits', description: 'Silicon detector hits' },
+  { id: 'calo_hits', label: 'Calo Hits', description: 'Calorimeter energy deposits' },
+  { id: 'tracks', label: 'Tracks', description: 'Reconstructed particle trajectories' }
 ]
-const manifest = ref(null)
-const selectedCampaign = ref('taster')
 
-// Approximate display sizes per object (GB per 1,000 events)
-const objectDisplaySizes = {
-  hits: 10,
-  tracks: 0.1,
-  particle_flow: 20,
-  particles: 3,
-  events: 1,
-  partons: 2,
-  tracker_hits: 10,
-  calo_cells: 30
-}
+// Size estimates loaded from JSON (GB per 1000 events)
+const sizeEstimates = ref({})
 
-const now = () => new Date()
-
-function deriveFromManifest() {
-  if (!manifest.value) return
-  const campaigns = manifest.value.campaigns || {}
-  
-  // Build campaign list - fully derived from manifest
-  campaignTypes.value = Object.keys(campaigns).map(campId => {
-    const camp = campaigns[campId]
-    return {
-      id: campId,
-      label: campId.charAt(0).toUpperCase() + campId.slice(1).replace(/_/g, ' '),
-      pileup: camp.pileup,
-      available: true, // campaigns are always selectable
-      default: camp.default || false
-    }
-  })
-  
-  const camp = campaigns[selectedCampaign.value]
-  if (!camp || !camp.datasets) return
-
-  // Diagnostics: log high-level manifest details for visibility
+async function fetchSizeEstimates() {
   try {
-    console.log('[ColliderML] campaigns:', Object.keys(campaigns))
-    console.log('[ColliderML] selected campaign:', selectedCampaign.value, { pileup: camp.pileup, default: camp.default })
-  } catch {}
+    console.log('[ColliderML] Loading size estimates...')
+    const response = await fetch('/ColliderML/size-estimates.json')
 
-  // Collect ALL datasets across all campaigns to show complete picture
-  const allDatasets = new Set()
-  Object.values(campaigns).forEach(c => {
-    if (c.datasets) Object.keys(c.datasets).forEach(ds => allDatasets.add(ds))
-  })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
 
-  // Build dataset list for current campaign
-  const datasets = Object.keys(camp.datasets)
-  console.log('[ColliderML] datasets in campaign', selectedCampaign.value, ':', datasets)
-  
-  channelTypes.value = Array.from(allDatasets).map(ds => {
-    const d = camp.datasets[ds]
-    if (!d) {
-      // Dataset exists in other campaigns but not this one
-      return { id: ds, label: ds.charAt(0).toUpperCase() + ds.slice(1), available: false, reason: 'other_campaign' }
-    }
-    
-    const availableFrom = d.available || d.available_from || null
-    const isPlanned = !!availableFrom && (new Date(availableFrom) > now())
-    const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
-    const hasVersions = !!(d.versions && Object.keys(d.versions).length > 0)
-    const hasObjects = !!(defVer && defVer.objects && Object.keys(defVer.objects).some(obj => defVer.objects[obj].length > 0))
-    
-    let available = false
-    let reason = null
-    
-    if (!hasVersions) {
-      reason = 'no_versions'
-    } else if (isPlanned) {
-      reason = 'future_date'
-    } else if (!hasObjects) {
-      reason = 'no_data'
-    } else {
-      available = true
-    }
-    
-    return { 
-      id: ds, 
-      label: ds.charAt(0).toUpperCase() + ds.slice(1), 
-      available,
-      reason,
-      availableDate: availableFrom
-    }
-  })
-
-  // Collect ALL possible objects across all campaigns and datasets
-  const allObjectsSet = new Set()
-  Object.values(campaigns).forEach(c => {
-    if (c.datasets) {
-      Object.values(c.datasets).forEach(d => {
-        if (d.versions) {
-          Object.values(d.versions).forEach(v => {
-            if (v.objects) {
-              Object.keys(v.objects).forEach(obj => allObjectsSet.add(obj))
-            }
-          })
-        }
-      })
-    }
-  })
-
-  const discoveredObjects = Array.from(allObjectsSet)
-  console.log('[ColliderML] all possible objects across campaigns:', discoveredObjects)
-  
-  objectTypes.value = discoveredObjects.map(o => {
-    // Check availability in current campaign
-    let available = false
-    let hasEmptyArrays = false
-    
-    for (const ds of datasets) {
-      const d = camp.datasets[ds]
-      if (!d) continue
-      
-      const availableFrom = d.available || d.available_from || null
-      const isPlanned = !!availableFrom && (new Date(availableFrom) > now())
-      const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
-      
-      if (defVer && defVer.objects && defVer.objects.hasOwnProperty(o)) {
-        if (defVer.objects[o].length > 0 && !isPlanned) {
-          available = true
-          break
-        } else if (defVer.objects[o].length === 0) {
-          hasEmptyArrays = true
-        }
+    sizeEstimates.value = await response.json()
+    console.log('[ColliderML] Size estimates loaded:', sizeEstimates.value)
+  } catch (error) {
+    console.error('[ColliderML] Failed to load size estimates:', error)
+    // Fallback to default estimates
+    sizeEstimates.value = {
+      pu0: {
+        particles: 0.25,
+        tracker_hits: 0.2,
+        calo_hits: 0.60,
+        tracks: 0.003
+      },
+      pu200: {
+        particles: 8.0,
+        tracker_hits: 10.0,
+        calo_hits: 14.0,
+        tracks: 0.07
       }
     }
-    
-    // Derive size from manifest if available, else estimate based on name
-    let size = 0
-    if (o.includes('hits')) size = 10
-    else if (o.includes('tracks')) size = 2
-    else if (o.includes('particles')) size = 10
-    else if (o.includes('calo')) size = 30
-    else size = 5 // default
-    
-    return { 
-      id: o, 
-      label: o.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), 
-      size,
-      available,
-      reason: available ? null : (hasEmptyArrays ? 'empty_data' : 'not_in_campaign')
-    }
-  })
+  }
+}
 
-  // Auto-select all available objects for the current campaign
-  const availableObjects = objectTypes.value.filter(obj => obj.available).map(obj => obj.id)
-  selections.value.objects = availableObjects
+async function fetchAvailableDatasets() {
+  try {
+    console.log('[ColliderML] Fetching available datasets from HuggingFace...')
+    const response = await fetch(
+      'https://huggingface.co/api/datasets?author=OpenDataDetector&limit=100'
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const allDatasets = await response.json()
+
+    // Filter and parse valid ColliderML datasets
+    const pattern = /^ColliderML_([a-zA-Z0-9]+)_(pu\d+)$/
+    const testKeywords = ['test', 'dev', 'tmp', 'debug', 'sample']
+
+    const validDatasets = allDatasets
+      .map(ds => {
+        const name = ds.id.split('/')[1]
+        const match = name.match(pattern)
+
+        if (!match) return null
+
+        const [_, process, pileup] = match
+
+        // Exclude test datasets
+        if (testKeywords.some(keyword => process.toLowerCase().includes(keyword))) {
+          return null
+        }
+
+        return {
+          id: ds.id,
+          process,
+          pileup,
+          downloads: ds.downloads || 0
+        }
+      })
+      .filter(ds => ds !== null)
+
+    console.log('[ColliderML] Found valid datasets:', validDatasets)
+
+    // Extract unique channels and pileup levels
+    const channels = [...new Set(validDatasets.map(d => d.process))]
+    const pileups = [...new Set(validDatasets.map(d => d.pileup))]
+
+    channelTypes.value = channels.map(ch => ({
+      id: ch,
+      label: ch,
+      available: true
+    }))
+
+    pileupTypes.value = pileups.map(pu => ({
+      id: pu,
+      label: pu === 'pu0' ? 'No Pileup (pu0)' : `Pileup ${pu.replace('pu', '')}`,
+      available: true
+    }))
+
+    loading.value = false
+
+  } catch (error) {
+    console.error('[ColliderML] Failed to fetch datasets:', error)
+    // Fallback to known defaults
+    channelTypes.value = [
+      { id: 'ttbar', label: 'ttbar', available: true },
+      { id: 'ggf', label: 'ggf', available: true }
+    ]
+    pileupTypes.value = [
+      { id: 'pu0', label: 'No Pileup (pu0)', available: true }
+    ]
+    loading.value = false
+  }
 }
 
 onMounted(async () => {
-  for (const url of manifestUrlCandidates) {
-    try {
-      const res = await fetch(url, { cache: 'no-store' })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      // Guard against HTML or invalid JSON
-      const text = await res.text()
-      try {
-        manifest.value = JSON.parse(text)
-      } catch (parseErr) {
-        throw new Error('Manifest is not valid JSON')
-      }
-      // Pick default campaign from manifest if available
-      try {
-        const campaigns = manifest.value?.campaigns || {}
-        const defaultEntry = Object.entries(campaigns).find(([, v]) => v && v.default)
-        const firstKey = Object.keys(campaigns)[0]
-        selectedCampaign.value = defaultEntry ? defaultEntry[0] : (firstKey || selectedCampaign.value)
-      } catch {}
-      deriveFromManifest()
-      return
-    } catch (e) {
-      console.warn('Failed to load manifest from', url, e)
-      continue
-    }
-  }
-  // No manifest available; proceed with empty defaults
+  await fetchSizeEstimates()
+  await fetchAvailableDatasets()
 })
 
+// Check if current selection is available
+const isDatasetAvailable = computed(() => {
+  const channel = selections.value.channels[0]
+  const pileup = selections.value.pileup
 
-// Base size calculation per channel
-const baseChannelSizeGB = computed(() => {
-  // This is the size for 1,000 events
-  return selections.value.objects.reduce((total, id) => {
-    const obj = objectTypes.value.find(o => o.id === id)
-    return total + (obj?.size || 0)
-  }, 0)
+  const hasChannel = channelTypes.value.some(ch => ch.id === channel)
+  const hasPileup = pileupTypes.value.some(pu => pu.id === pileup)
+
+  return hasChannel && hasPileup
 })
 
-// Total size calculation accounting for channels 
-const rawSizeGB = computed(() => {
+// Size estimation (MB per 1000 events per object)
+const estimatedSizeMB = computed(() => {
   const channelCount = selections.value.channels.length
-  console.log('Channel count:', channelCount)
-  if (channelCount === 0) return 0
+  if (channelCount === 0 || selections.value.objects.length === 0) return 0
 
-  // Log base channel size
-  console.log('Base channel size (GB per 1,000 events):', baseChannelSizeGB.value)
+  // Get size estimates for current pileup level
+  const currentPileup = selections.value.pileup
+  const estimates = sizeEstimates.value[currentPileup] || {}
 
-  // Get size for selected event count
-  const finalSize = baseChannelSizeGB.value * channelCount * (selections.value.eventCount / 1000)
-  console.log(`Event count: ${selections.value.eventCount}`)
-  console.log(`Final size: ${finalSize}GB`)
-  return finalSize
+  const sizePerObject = selections.value.objects.reduce((total, objId) => {
+    const size = estimates[objId] || 0
+    return total + size
+  }, 0)
+
+  // Size in GB per 1000 events
+  const sizeGB = sizePerObject * channelCount * (selections.value.eventCount / 1000)
+  return sizeGB * 1024 // Convert to MB
 })
 
-// Format size for display
 const estimatedSize = computed(() => {
-  const sizeGB = rawSizeGB.value
-  if (sizeGB >= 1000) {
-    return `${(sizeGB / 1000).toFixed(1)}TB`
-  } else if (sizeGB < 0.1) {
-    return `${(sizeGB * 1000).toFixed(0)}MB`
+  const mb = estimatedSizeMB.value
+  if (mb >= 1024) {
+    return `${(mb / 1024).toFixed(1)}GB`
+  } else if (mb < 1) {
+    return `${Math.round(mb * 1000)}KB`
   } else {
-    return `${sizeGB.toFixed(1)}GB`
+    return `${Math.round(mb)}MB`
   }
 })
 
-const estimatedTime = computed(() => {
-  const speed = 150 // MB/s
-  const sizeInMB = rawSizeGB.value * 1024
-  const seconds = sizeInMB / speed
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  return hours > 0 
-    ? `${hours}h ${minutes}m`
-    : `${minutes}m`
-})
-
+// Generate Python code
 const command = computed(() => {
-  let cmd = 'colliderml get'
-  // campaign
-  if (selectedCampaign.value) {
-    cmd += ` -c ${selectedCampaign.value}`
+  const channel = selections.value.channels[0] || 'ttbar'
+  const pileup = selections.value.pileup || 'pu0'
+  const objects = selections.value.objects
+  const events = selections.value.eventCount
+
+  const datasetId = `OpenDataDetector/ColliderML_${channel}_${pileup}`
+
+  if (objects.length === 0) {
+    return `# Select at least one object type`
   }
-  // datasets
-  if (selections.value.channels.length) {
-    cmd += ' -d ' + selections.value.channels.join(',')
+
+  if (objects.length === 1) {
+    return `from datasets import load_dataset
+dataset = load_dataset("${datasetId}", "${objects[0]}", split="train[:${events}]")`
   }
-  // objects
-  if (selections.value.objects.length) {
-    cmd += ' -o ' + selections.value.objects.join(',')
-  }
-  // events
-  cmd += ` -e ${selections.value.eventCount}`
-  // output dir
-  cmd += ' -O data'
-  return cmd
+
+  // Multiple objects
+  let code = `from datasets import load_dataset\n\n`
+  code += `# Load selected objects\n`
+  objects.forEach(obj => {
+    const varName = obj.replace('_', '')
+    code += `${varName} = load_dataset("${datasetId}", "${obj}", split="train[:${events}]")\n`
+  })
+
+  return code
 })
 
 const toggleItem = (category, id) => {
-  // Only toggle if the item is available
-  const items = selections.value[category]
-  const itemList = category === 'channels' ? channelTypes.value : objectTypes.value
-  const item = itemList.find(i => i.id === id)
-  
-  if (!item?.available) return // Don't toggle if not available
-  
-  const index = items.indexOf(id)
-  if (index === -1) {
-    items.push(id)
-  } else {
-    items.splice(index, 1)
+  if (category === 'channels') {
+    selections.value.channels = [id]
+  } else if (category === 'objects') {
+    const items = selections.value[category]
+    const index = items.indexOf(id)
+    if (index === -1) {
+      items.push(id)
+    } else {
+      items.splice(index, 1)
+    }
   }
 }
 
-const selectAll = (category, items) => {
-  // Only select available items
-  selections.value[category] = items
-    .filter(item => item.available)
-    .map(item => item.id)
+const selectAll = (category) => {
+  if (category === 'objects') {
+    selections.value.objects = objectTypes.map(obj => obj.id)
+  }
 }
 
 const deselectAll = (category) => {
-  selections.value[category] = []
+  if (category === 'objects') {
+    selections.value.objects = []
+  }
 }
 
-const isSelected = (category, id) => selections.value[category] && selections.value[category].includes(id)
+const isSelected = (category, id) => {
+  if (category === 'channels') {
+    return selections.value.channels.includes(id)
+  }
+  return selections.value[category] && selections.value[category].includes(id)
+}
 
 const toggleExpand = (category) => {
   expanded.value[category] = !expanded.value[category]
@@ -339,315 +271,168 @@ const copyCommand = async () => {
   }
 }
 
-// Define discrete event count values (all possible values)
-const eventCountValues = [100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000]
-
-const maxAvailableEvents = ref(1000)
-
-// Interval helpers for event coverage computations
-function mergeIntervals(intervals) {
-  if (!intervals || intervals.length === 0) return []
-  const sorted = intervals
-    .map(([s, e]) => [Number(s) || 0, Number(e) || 0])
-    .filter(([s, e]) => e >= s)
-    .sort((a, b) => a[0] - b[0])
-  const merged = []
-  let [curS, curE] = sorted[0]
-  for (let i = 1; i < sorted.length; i++) {
-    const [s, e] = sorted[i]
-    if (s <= curE + 1) {
-      // overlap or adjacent → merge
-      curE = Math.max(curE, e)
-    } else {
-      merged.push([curS, curE])
-      ;[curS, curE] = [s, e]
-    }
-  }
-  merged.push([curS, curE])
-  return merged
-}
-
-function intersectTwo(a, b) {
-  const res = []
-  let i = 0, j = 0
-  while (i < a.length && j < b.length) {
-    const [s1, e1] = a[i]
-    const [s2, e2] = b[j]
-    const s = Math.max(s1, s2)
-    const e = Math.min(e1, e2)
-    if (e >= s) res.push([s, e])
-    if (e1 < e2) i++
-    else j++
-  }
-  return res
-}
-
-function intersectAll(lists) {
-  if (!lists || lists.length === 0) return []
-  let cur = lists[0]
-  for (let k = 1; k < lists.length; k++) {
-    cur = intersectTwo(cur, lists[k])
-    if (cur.length === 0) return []
-  }
-  return cur
-}
-
-function sumIntervals(intervals) {
-  return intervals.reduce((acc, [s, e]) => acc + (Number(e) - Number(s) + 1), 0)
-}
-
-// Recompute max available events from manifest based on current selections
-watchEffect(() => {
-  if (!manifest.value) return
-  const camp = manifest.value.campaigns?.[selectedCampaign.value]
-  if (!camp) return
-  const selectedDatasets = selections.value.channels
-  const selectedObjects = selections.value.objects
-  let totalEvents = 0
-  console.log('[ColliderML] recomputing maxAvailableEvents for datasets', selectedDatasets, 'objects', selectedObjects)
-
-  for (const ds of selectedDatasets) {
-    const d = camp.datasets?.[ds]
-    if (!d) continue
-    const defVer = d.default_version && d.versions ? d.versions[d.default_version] : null
-    if (!defVer || !defVer.objects) continue
-
-    // Build merged intervals per selected object
-    const perObjectIntervals = []
-    for (const obj of selectedObjects) {
-      const segments = defVer.objects[obj] || []
-      const intervals = segments.map(seg => [Number(seg.start_event) || 0, Number(seg.end_event) || 0])
-      const merged = mergeIntervals(intervals)
-      console.log('[ColliderML] merged intervals for', ds, obj, ':', merged)
-      // If the object isn't present at all, treat as empty -> intersection will be empty
-      perObjectIntervals.push(merged)
-    }
-
-    // Intersect across objects to get common coverage within this dataset
-    const common = intersectAll(perObjectIntervals)
-    const datasetTotal = sumIntervals(common)
-    console.log('[ColliderML] dataset', ds, 'common coverage intervals:', common, 'total:', datasetTotal)
-    totalEvents += datasetTotal
-  }
-
-  // Use computed value or fallback to 100 if nothing computed
-  console.log('[ColliderML] computed total events before fallback:', totalEvents)
-  maxAvailableEvents.value = totalEvents > 0 ? totalEvents : 100
-  // Clamp current selection if needed
-  if (selections.value.eventCount > maxAvailableEvents.value) {
-    selections.value.eventCount = maxAvailableEvents.value
-  }
-  console.log('[ColliderML] maxAvailableEvents:', maxAvailableEvents.value)
-})
-
-// Helper function to convert between slider index and event count
-const logSliderToEvents = (value) => {
-  // Only allow selecting up to maxAvailableEvents
-  const limitIndex = eventCountValues.findIndex(v => v > maxAvailableEvents.value)
-  const cappedIndex = Math.min(value, (limitIndex === -1 ? eventCountValues.length : limitIndex) - 1)
-  const selectedValue = eventCountValues[cappedIndex]
-  return Math.min(selectedValue, maxAvailableEvents.value)
-}
-
-const eventsToLogSlider = (events) => {
-  // Find the closest index that doesn't exceed the event count
-  const index = eventCountValues.findIndex(v => v >= events)
-  return index === -1 ? eventCountValues.length - 1 : index
-}
+// Event count slider
+const eventCountValues = [100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
 
 const sliderValue = computed({
-  get: () => eventsToLogSlider(selections.value.eventCount),
+  get: () => {
+    const index = eventCountValues.findIndex(v => v >= selections.value.eventCount)
+    return index === -1 ? eventCountValues.length - 1 : index
+  },
   set: (value) => {
-    // Ensure we don't exceed maxAvailableEvents
-    selections.value.eventCount = logSliderToEvents(value)
+    selections.value.eventCount = eventCountValues[value]
   }
 })
 
-// Format event count for display
 const formatEventCount = (count) => {
   if (count >= 1000000) return `${count/1000000}M`
   if (count >= 1000) return `${count/1000}k`
   return count.toString()
 }
-
-// Add a computed property for tick classes
-const getTickClass = (value) => {
-  return {
-    active: value <= selections.value.eventCount,
-    available: value <= maxAvailableEvents.value,
-    inactive: value > maxAvailableEvents.value
-  }
-}
-
-// Find the index of the max available value
-const maxAvailableIndex = eventCountValues.length - 1
 </script>
 
 <template>
   <div class="config-modal">
     <div class="config-panel">
       <h3>Dataset Configuration</h3>
-      
-      <!-- Campaign Card -->
-      <div class="config-card">
-        <div class="card-header">
-          <h4>Campaign</h4>
-        </div>
-        <div class="button-grid">
-          <button
-            v-for="campaign in campaignTypes"
-            :key="campaign.id"
-            class="select-button"
-            :class="{ 
-              selected: selectedCampaign === campaign.id,
-              inactive: !campaign.available 
-            }"
-            @click="selectedCampaign = campaign.id"
-          >
-            {{ campaign.label }}
-            <span v-if="campaign.pileup" class="pileup-info">⟨μ⟩={{ campaign.pileup }}</span>
-            <span v-if="!campaign.available" class="coming-soon">Coming Soon</span>
-          </button>
-        </div>
-      </div>
-      
-      <!-- Channels Card -->
-      <div class="config-card">
-        <div class="card-header">
-          <h4>Channels</h4>
-          <button class="expand-button" :class="{ expanded: expanded.channels }" @click="toggleExpand('channels')">
-            {{ expanded.channels ? '↑ Show Less' : '↓ Show More' }}
-          </button>
-        </div>
-        <div class="button-grid">
-          <button
-            v-for="channel in channelTypes.filter(c => c.available || expanded.channels)"
-            :key="channel.id"
-            class="select-button"
-            :class="{ 
-              selected: isSelected('channels', channel.id),
-              inactive: !channel.available 
-            }"
-            @click="toggleItem('channels', channel.id)"
-          >
-            {{ channel.label }}
-            <span v-if="!channel.available" class="coming-soon">Coming Soon</span>
-          </button>
-        </div>
-        <div v-if="expanded.channels" class="select-all">
-          <div class="button-group">
-            <button class="select-all-button" @click="deselectAll('channels')">
-              Deselect All
-            </button>
-            <button class="select-all-button" @click="selectAll('channels', channelTypes)">
-              Select All
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      
-      <!-- Objects Card -->
-      <div class="config-card">
-        <div class="card-header">
-          <h4>Objects</h4>
-          <button class="expand-button" :class="{ expanded: expanded.objects }" @click="toggleExpand('objects')">
-            {{ expanded.objects ? '↑ Show Less' : '↓ Show More' }}
-          </button>
-        </div>
-        <div class="button-grid">
-          <button
-            v-for="obj in objectTypes.filter(o => o.available || expanded.objects)"
-            :key="obj.id"
-            class="select-button"
-            :class="{ 
-              selected: isSelected('objects', obj.id),
-              inactive: !obj.available 
-            }"
-            @click="toggleItem('objects', obj.id)"
-          >
-            {{ obj.label }}
-            <span v-if="!obj.available" class="coming-soon">Coming Soon</span>
-          </button>
-        </div>
-        <div v-if="expanded.objects" class="select-all">
-          <div class="button-group">
-            <button class="select-all-button" @click="deselectAll('objects')">
-              Deselect All
-            </button>
-            <button class="select-all-button" @click="selectAll('objects', objectTypes)">
-              Select All
-            </button>
-          </div>
-        </div>
+
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading available datasets from HuggingFace...</p>
       </div>
 
-      <!-- Estimation Card -->
-      <div class="config-card">
-        <div class="estimation-section">
-          <h4>Estimation</h4>
-          <div class="estimates">
-            <div class="estimate-item">
-              <span class="label">Size</span>
-              <div class="value-box">{{ estimatedSize }}</div>
-            </div>
-            <div class="estimate-item">
-              <span class="label">Time</span>
-              <div class="value-box">~{{ estimatedTime }}</div>
-            </div>
-            <div class="estimate-item">
-              <span class="label">Speed</span>
-              <div class="value-box">150MB/s</div>
+      <template v-else>
+        <!-- Pileup Level Card -->
+        <div class="config-card">
+          <div class="card-header">
+            <h4>Pileup Level</h4>
+          </div>
+          <div class="button-grid">
+            <button
+              v-for="pu in pileupTypes"
+              :key="pu.id"
+              class="select-button"
+              :class="{ selected: selections.pileup === pu.id }"
+              @click="selections.pileup = pu.id"
+            >
+              {{ pu.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Channels Card -->
+        <div class="config-card">
+          <div class="card-header">
+            <h4>Physics Process</h4>
+            <button
+              v-if="channelTypes.length > 3"
+              class="expand-button"
+              :class="{ expanded: expanded.channels }"
+              @click="toggleExpand('channels')"
+            >
+              {{ expanded.channels ? '↑ Show Less' : '↓ Show More' }}
+            </button>
+          </div>
+          <div class="button-grid">
+            <button
+              v-for="channel in expanded.channels ? channelTypes : channelTypes.slice(0, 3)"
+              :key="channel.id"
+              class="select-button"
+              :class="{ selected: isSelected('channels', channel.id) }"
+              @click="toggleItem('channels', channel.id)"
+            >
+              {{ channel.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Objects Card -->
+        <div class="config-card">
+          <div class="card-header">
+            <h4>Data Objects</h4>
+            <button class="expand-button" :class="{ expanded: expanded.objects }" @click="toggleExpand('objects')">
+              {{ expanded.objects ? '↑ Show Less' : '↓ Show More' }}
+            </button>
+          </div>
+          <div class="object-grid">
+            <button
+              v-for="obj in objectTypes"
+              :key="obj.id"
+              class="object-button"
+              :class="{ selected: isSelected('objects', obj.id) }"
+              @click="toggleItem('objects', obj.id)"
+            >
+              <div class="object-name">{{ obj.label }}</div>
+              <div v-if="expanded.objects" class="object-desc">{{ obj.description }}</div>
+            </button>
+          </div>
+          <div class="select-all">
+            <div class="button-group">
+              <button class="select-all-button" @click="deselectAll('objects')">
+                Deselect All
+              </button>
+              <button class="select-all-button" @click="selectAll('objects')">
+                Select All
+              </button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Event Count Slider Card -->
-      <div class="config-card">
-        <div class="card-header">
-          <h4>Number of Events</h4>
-        </div>
-        <div class="slider-container">
-          <div class="slider-with-labels">
-            <span class="slider-label">100</span>
-            <div class="slider-track-container">
-              <input 
-                type="range" 
-                v-model="sliderValue" 
-                :min="0" 
-                :max="maxAvailableIndex"
-                step="1"
-                class="range-slider"
-              >
-              <div class="tick-marks">
-                <div 
-                  v-for="(value, index) in eventCountValues" 
-                  :key="index"
-                  class="tick"
-                  :class="getTickClass(value)"
+        <!-- Event Count Slider Card -->
+        <div class="config-card">
+          <div class="card-header">
+            <h4>Number of Events: {{ selections.eventCount.toLocaleString() }}</h4>
+          </div>
+          <div class="slider-container">
+            <div class="slider-with-labels">
+              <span class="slider-label">{{ formatEventCount(eventCountValues[0]) }}</span>
+              <div class="slider-track-container">
+                <input
+                  type="range"
+                  v-model="sliderValue"
+                  :min="0"
+                  :max="eventCountValues.length - 1"
+                  step="1"
+                  class="range-slider"
                 >
-                  <span class="tick-label" :class="{ inactive: value > maxAvailableEvents }">
-                    {{ formatEventCount(value) }}
-                  </span>
+                <div class="tick-marks">
+                  <div
+                    v-for="(value, index) in eventCountValues"
+                    :key="index"
+                    class="tick"
+                    :class="{ active: index <= sliderValue }"
+                  >
+                    <span class="tick-label">{{ formatEventCount(value) }}</span>
+                  </div>
                 </div>
               </div>
-              <div class="coming-soon-label">Coming Soon</div>
+              <span class="slider-label">{{ formatEventCount(eventCountValues[eventCountValues.length - 1]) }}</span>
             </div>
-            <span class="slider-label">1M</span>
           </div>
-          <!-- <div class="slider-value">{{ selections.eventCount.toLocaleString() }} events</div> -->
         </div>
-      </div>
+
+        <!-- Estimation Card -->
+        <div class="config-card">
+          <div class="estimation-section">
+            <h4>Estimated Download Size</h4>
+            <div class="estimates">
+              <div class="estimate-item">
+                <span class="label">Approximate Size</span>
+                <div class="value-box">{{ estimatedSize }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
-    
+
     <!-- Command Display -->
     <div class="command-section">
       <div class="command">
-        <code>{{ command }}</code>
-        <button 
-          @click="copyCommand" 
-          class="copy-button" 
+        <pre><code>{{ command }}</code></pre>
+        <button
+          @click="copyCommand"
+          class="copy-button"
           :class="{ 'copied': isCopied }"
           :title="isCopied ? 'Copied!' : 'Copy to clipboard'"
         >
@@ -679,8 +464,26 @@ const maxAvailableIndex = eventCountValues.length - 1
   padding: 20px;
 }
 
-.section {
-  margin-top: 20px;
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  gap: 16px;
+}
+
+.spinner {
+  border: 3px solid var(--vp-c-divider);
+  border-top: 3px solid var(--vp-c-brand);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 h3 {
@@ -707,7 +510,6 @@ h4 {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  cursor: pointer;
 }
 
 .card-header h4 {
@@ -732,16 +534,23 @@ h4 {
 
 .button-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 8px;
   margin-bottom: 8px;
 }
 
-.select-button {
+.object-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.select-button, .object-button {
   background: var(--vp-c-bg-soft);
   border: 1px solid var(--vp-c-divider);
   border-radius: 6px;
-  padding: 6px 12px;
+  padding: 10px 12px;
   font-size: 0.9em;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -749,13 +558,33 @@ h4 {
   text-align: center;
 }
 
-.select-button.selected {
+.object-button {
+  text-align: left;
+  padding: 12px;
+}
+
+.object-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.object-desc {
+  font-size: 0.8em;
+  color: var(--vp-c-text-2);
+  line-height: 1.3;
+}
+
+.select-button.selected, .object-button.selected {
   background: var(--vp-c-brand);
   color: white;
   border-color: var(--vp-c-brand);
 }
 
-.select-button:hover:not(.selected) {
+.select-button.selected .object-desc {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.select-button:hover:not(.selected), .object-button:hover:not(.selected) {
   border-color: var(--vp-c-brand);
 }
 
@@ -787,19 +616,8 @@ h4 {
   border-color: var(--vp-c-brand);
 }
 
-.processing-estimation-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-.processing-section, .estimation-section {
+.estimation-section {
   min-width: 0;
-}
-
-.processing-section h4, .estimation-section h4 {
-  margin-top: 0;
 }
 
 .estimates {
@@ -822,9 +640,10 @@ h4 {
 
 .value-box {
   background: var(--vp-c-bg-soft);
-  padding: 4px 12px;
+  padding: 6px 16px;
   border-radius: 6px;
   font-weight: 500;
+  font-size: 1.1em;
   min-width: 80px;
   text-align: center;
   white-space: nowrap;
@@ -834,6 +653,7 @@ h4 {
   background: var(--vp-c-bg);
   border-radius: 8px;
   padding: 16px;
+  margin-top: 16px;
 }
 
 .command {
@@ -845,9 +665,16 @@ h4 {
   overflow: hidden;
 }
 
-.command code {
+.command pre {
+  margin: 0;
   padding: 12px;
   flex-grow: 1;
+  overflow-x: auto;
+}
+
+.command code {
+  font-family: monospace;
+  font-size: 0.9em;
 }
 
 .copy-button {
@@ -874,62 +701,7 @@ h4 {
   background: var(--vp-c-bg-mute);
 }
 
-.processing-options {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.switch {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  position: relative;
-}
-
-.switch input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: relative;
-  width: 36px;
-  height: 20px;
-  background: var(--vp-c-bg-soft);
-  border-radius: 10px;
-  transition: 0.3s;
-}
-
-.slider:before {
-  content: "";
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: white;
-  top: 2px;
-  left: 2px;
-  transition: 0.3s;
-}
-
-input:checked + .slider {
-  background: var(--vp-c-brand);
-}
-
-input:checked + .slider:before {
-  transform: translateX(16px);
-}
-
-.switch .label {
-  color: var(--vp-c-text-1);
-  font-size: 0.9em;
-}
-
-/* Updated Slider styles */
+/* Slider styles */
 .slider-container {
   padding: 1rem;
 }
@@ -938,7 +710,6 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1.5rem;
 }
 
 .slider-track-container {
@@ -951,7 +722,7 @@ input:checked + .slider:before {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -4px;
+  bottom: -8px;
   display: flex;
   justify-content: space-between;
   pointer-events: none;
@@ -969,23 +740,14 @@ input:checked + .slider:before {
   background: var(--vp-c-brand);
 }
 
-.tick.inactive {
-  opacity: 0.5;
-}
-
 .tick-label {
   position: absolute;
   top: 12px;
   left: 50%;
   transform: translateX(-50%) rotate(-45deg);
-  font-size: 0.8em;
+  font-size: 0.75em;
   color: var(--vp-c-text-2);
   white-space: nowrap;
-}
-
-.tick-label.inactive {
-  opacity: 0.5;
-  font-style: italic;
 }
 
 .range-slider {
@@ -1030,52 +792,9 @@ input:checked + .slider:before {
   transform: scale(1.1);
 }
 
-.slider-value {
-  text-align: center;
-  font-weight: 500;
-  color: var(--vp-c-text-1);
-  font-size: 1.1em;
-  margin-top: 1rem;
-}
-
-.select-button.inactive {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: var(--vp-c-bg-mute);
-  border-color: var(--vp-c-divider);
-  position: relative;
-}
-
-.select-button.inactive:hover {
-  border-color: var(--vp-c-divider);
-}
-
-.coming-soon {
-  font-size: 0.7em;
-  display: block;
-  color: var(--vp-c-text-3);
-  margin-top: 0px;
-}
-
-.coming-soon-label {
-  position: absolute;
-  width: 100%;
-  text-align: center;
-  color: var(--vp-c-text-3);
-  font-size: 0.8em;
-  font-style: italic;
-  margin-top: 3.0rem;
-  opacity: 0.7;
-}
-
-.pileup-info {
-  font-size: 0.8em;
-  display: block;
+.slider-label {
   color: var(--vp-c-text-2);
-  margin-top: 2px;
+  font-size: 0.9em;
+  white-space: nowrap;
 }
-
-.select-button.selected .pileup-info {
-  color: white;
-}
-</style> 
+</style>
