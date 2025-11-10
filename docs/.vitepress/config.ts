@@ -17,8 +17,9 @@ const config = defineConfig({
     siteTitle: 'ColliderML',
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'ACAT', link: '/acat' },
-      { text: 'AIS25', link: '/ais25' }
+      { text: 'CTD25', link: '/ctd25' },
+      { text: 'AIS25', link: '/ais25' },
+      { text: 'ACAT', link: '/acat' }      
     ],
     sidebar: {},
     footer: {
