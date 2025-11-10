@@ -7,7 +7,9 @@
 **Authors:** Daniel Murnane, Paul Gessinger, Andreas Salzburger, Anna Zaborowska
 
 **Event:** Connecting the Dots 2025 (CTD25)
+
 **Dates:** November 10–14, 2025
+
 **Location:** Tokyo, Japan
 
 If you visited our poster during CTD25, thank you for your interest! For more information about the conference, please visit the [CTD25 website](https://indico.cern.ch/event/1499357/).
