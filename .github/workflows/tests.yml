@@ -34,7 +34,7 @@ jobs:
     
     - name: Run tests
       run: |
-        pytest -v -m "not integration" --cov=colliderml --cov-report=xml --cov-report=term-missing
+        PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -v --cov=colliderml --cov-report=xml --cov-report=term-missing
     
     - name: Generate Coverage Badge
       uses: tj-actions/coverage-badge-py@v2
