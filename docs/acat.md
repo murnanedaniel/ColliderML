@@ -6,7 +6,7 @@ If you visited our poster during ACAT 2025, thank you for your interest! If you 
 
 ## Getting the Data
 
-The ColliderML dataset is available through a lightweight library, accessing a NERSC Public Portal. For instructions on downloading and using the data, please visit the [ColliderML homepage](https://www.danielmurnane.com/ColliderML/).
+The ColliderML dataset is available through a lightweight library, accessing a NERSC Public Portal. For instructions on downloading and using the data, please visit the [ColliderML homepage](https://opendatadetector.github.io/ColliderML/).
 
 ### Timeline
 

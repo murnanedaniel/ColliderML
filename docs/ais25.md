@@ -18,7 +18,7 @@ ColliderML introduces an open dataset of one million fully simulated proton-prot
 
 ## Getting the Data
 
-The ColliderML dataset is available through a lightweight library, accessing a NERSC Public Portal. For instructions on downloading and using the data, please visit the [ColliderML homepage](https://www.danielmurnane.com/ColliderML/).
+The ColliderML dataset is available through a lightweight library, accessing a NERSC Public Portal. For instructions on downloading and using the data, please visit the [ColliderML homepage](https://opendatadetector.github.io/ColliderML/).
 
 ## Acknowledgments
 
