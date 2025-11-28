@@ -24,7 +24,7 @@ For development or to get the latest features:
 
 ```bash
 # Clone the repository
-git clone https://github.com/murnanedaniel/colliderml.git
+git clone https://github.com/OpenDataDetector/ColliderML.git
 cd colliderml
 
 # Install in development mode

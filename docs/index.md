@@ -35,7 +35,7 @@ Use the configurator below to customize your dataset selection and generate the 
 
 <DataConfig />
 
-If there are errors or unexpected behavior, please [open an issue](https://github.com/murnanedaniel/colliderml/issues) on the GitHub repository.
+If there are errors or unexpected behavior, please [open an issue](https://github.com/OpenDataDetector/ColliderML/issues) on the GitHub repository.
 <!-- CHANGELOG:DATASET:START -->
 ::: details Dataset Changelog (latest 5)
 - (0.2.0 — 2025-11-07) - Datasets now hosted on HuggingFace Hub for easier access and distribution.

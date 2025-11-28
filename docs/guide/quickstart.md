@@ -13,7 +13,7 @@ pip install colliderml
 Or install from source:
 
 ```bash
-git clone https://github.com/murnanedaniel/colliderml.git
+git clone https://github.com/OpenDataDetector/ColliderML.git
 cd colliderml
 pip install -e .
 ```
@@ -261,5 +261,5 @@ tf_dataset = dataset.to_tf_dataset(
 If you encounter issues:
 
 - Check the [FAQ](./faq.md)
-- Visit our [GitHub Issues](https://github.com/murnanedaniel/colliderml/issues)
+- Visit our [GitHub Issues](https://github.com/OpenDataDetector/ColliderML/issues)
 - Consult the [HuggingFace Hub](https://huggingface.co/OpenDataDetector) documentation

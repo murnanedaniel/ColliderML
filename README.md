@@ -1,6 +1,6 @@
 # ColliderML
 
-[![Tests](https://github.com/murnanedaniel/colliderml/actions/workflows/tests.yml/badge.svg)](https://github.com/murnanedaniel/colliderml/actions/workflows/tests.yml)
+[![Tests](https://github.com/OpenDataDetector/ColliderML/actions/workflows/tests.yml/badge.svg)](https://github.com/OpenDataDetector/ColliderML/actions/workflows/tests.yml)
 ![Coverage](./coverage.svg)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -33,8 +33,8 @@ conda create -n collider-dev python=3.11  # 3.10 or 3.11 recommended
 conda activate collider-dev
 
 # Clone repository
-git clone https://github.com/murnanedaniel/colliderml.git
-cd colliderml
+git clone https://github.com/OpenDataDetector/ColliderML.git
+cd ColliderML
 
 # Install in development mode with extra dependencies
 pip install -e ".[dev]"

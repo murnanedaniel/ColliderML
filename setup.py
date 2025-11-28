@@ -8,7 +8,7 @@ setup(
     long_description_content_type="text/markdown",
     author="Daniel Murnane",
     author_email="dtmurnane@lbl.gov",
-    url="https://github.com/murnanedaniel/colliderml",
+    url="https://github.com/OpenDataDetector/ColliderML",
     packages=find_packages(),
     python_requires=">=3.10,<3.12",
     install_requires=[
@@ -34,8 +34,8 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
     ],
     project_urls={
-        "Documentation": "https://murnanedaniel.github.io/colliderml",
-        "Source": "https://github.com/murnanedaniel/colliderml",
-        "Issues": "https://github.com/murnanedaniel/colliderml/issues",
+        "Documentation": "https://opendatadetector.github.io/ColliderML",
+        "Source": "https://github.com/OpenDataDetector/ColliderML",
+        "Issues": "https://github.com/OpenDataDetector/ColliderML/issues",
     },
 ) 

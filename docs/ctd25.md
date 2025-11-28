@@ -30,7 +30,7 @@ DM is supported by Danish Data Science Academy, which is funded by the Novo Nord
 
 ## Bugs and Feedback
 
-If you encounter any bugs or have any feedback, please [open an issue](https://github.com/murnanedaniel/colliderml/issues) on the GitHub repository. You can also contact [daniel.thomas.murnane@cern.ch](mailto:daniel.thomas.murnane@cern.ch).
+If you encounter any bugs or have any feedback, please [open an issue](https://github.com/OpenDataDetector/ColliderML/issues) on the GitHub repository. You can also contact [daniel.thomas.murnane@cern.ch](mailto:daniel.thomas.murnane@cern.ch).
 
 ## References
 
