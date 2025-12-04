@@ -12,7 +12,7 @@ The ColliderML dataset provides comprehensive simulation data for machine learni
 
 ## Get the Data
 
-The ColliderML datasets are hosted on [HuggingFace](https://huggingface.co/OpenDataDetector) and can be accessed using the `datasets` library.
+The ColliderML dataset is hosted on [HuggingFace](https://huggingface.co/datasets/CERN/Colliderml-release-1) and can be accessed using the `datasets` library.
 
 ### Quick Start
 
@@ -26,7 +26,7 @@ pip install datasets
 from datasets import load_dataset
 
 # Load particles data from ttbar events (no pileup)
-dataset = load_dataset("OpenDataDetector/ColliderML_ttbar_pu0", "particles")
+dataset = load_dataset("CERN/Colliderml-release-1", "ttbar_pu0_particles")
 ```
 
 ### Interactive Configuration

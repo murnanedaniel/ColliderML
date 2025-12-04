@@ -69,8 +69,8 @@ print(f"ColliderML version: {colliderml.__version__}")
 # Test loading a dataset
 from datasets import load_dataset
 dataset = load_dataset(
-    "OpenDataDetector/ColliderML_ttbar_pu0",
-    "particles",
+    "CERN/Colliderml-release-1",
+    "ttbar_pu0_particles",
     split="train"
 )
 print(f"Successfully loaded {len(dataset)} events")

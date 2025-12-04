@@ -62,57 +62,64 @@ async function fetchSizeEstimates() {
 
 async function fetchAvailableDatasets() {
   try {
-    console.log('[ColliderML] Fetching available datasets from HuggingFace...')
+    console.log('[ColliderML] Fetching available configs from HuggingFace...')
     const response = await fetch(
-      'https://huggingface.co/api/datasets?author=OpenDataDetector&limit=100'
+      'https://huggingface.co/api/datasets/CERN/Colliderml-release-1'
     )
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`)
     }
 
-    const allDatasets = await response.json()
+    const datasetInfo = await response.json()
 
-    // Filter and parse valid ColliderML datasets
-    const pattern = /^ColliderML_([a-zA-Z0-9]+)_(pu\d+)$/
-    const testKeywords = ['test', 'dev', 'tmp', 'debug', 'sample']
-
-    const validDatasets = allDatasets
-      .map(ds => {
-        const name = ds.id.split('/')[1]
-        const match = name.match(pattern)
-
-        if (!match) return null
-
-        const [_, process, pileup] = match
-
-        // Exclude test datasets
-        if (testKeywords.some(keyword => process.toLowerCase().includes(keyword))) {
-          return null
-        }
-
-        return {
-          id: ds.id,
-          process,
-          pileup,
-          downloads: ds.downloads || 0
-        }
+    // Parse available configs from the single consolidated dataset
+    // Config format: {process}_{pileup}_{object_type}
+    const configs = datasetInfo.siblings
+      ?.filter(s => s.rfilename.startsWith('data/'))
+      ?.map(s => {
+        // Extract config from path like: data/ttbar_pu0_particles/train-00000-of-00001.parquet
+        const match = s.rfilename.match(/data\/([^/]+)\//)
+        return match ? match[1] : null
       })
-      .filter(ds => ds !== null)
+      .filter((c, i, arr) => c && arr.indexOf(c) === i) // unique configs
 
-    console.log('[ColliderML] Found valid datasets:', validDatasets)
+    console.log('[ColliderML] Found configs:', configs)
 
-    // Extract unique channels and pileup levels
-    const channels = [...new Set(validDatasets.map(d => d.process))]
-    const pileups = [...new Set(validDatasets.map(d => d.pileup))]
+    if (!configs || configs.length === 0) {
+      throw new Error('No configs found in dataset')
+    }
 
-    channelTypes.value = channels.map(ch => ({
+    // Parse configs to extract processes and pileup levels
+    const processes = new Set()
+    const pileups = new Set()
+
+    configs.forEach(config => {
+      const parts = config.split('_')
+      if (parts.length >= 3) {
+        // Handle multi-word processes like "dihiggs"
+        const objectTypes = ['particles', 'tracker', 'calo', 'tracks']
+        let pileupIdx = parts.findIndex(p => p.startsWith('pu'))
+
+        if (pileupIdx > 0) {
+          const process = parts.slice(0, pileupIdx).join('_')
+          const pileup = parts[pileupIdx]
+          processes.add(process)
+          pileups.add(pileup)
+        }
+      }
+    })
+
+    console.log('[ColliderML] Found processes:', Array.from(processes))
+    console.log('[ColliderML] Found pileups:', Array.from(pileups))
+
+    channelTypes.value = Array.from(processes).map(ch => ({
       id: ch,
       label: ch,
       available: true
     }))
 
-    pileupTypes.value = pileups.map(pu => ({
+    pileupTypes.value = Array.from(pileups).sort().map(pu => ({
       id: pu,
       label: pu === 'pu0' ? 'No Pileup (pu0)' : `Pileup ${pu.replace('pu', '')}`,
       available: true
@@ -121,14 +128,16 @@ async function fetchAvailableDatasets() {
     loading.value = false
 
   } catch (error) {
-    console.error('[ColliderML] Failed to fetch datasets:', error)
-    // Fallback to known defaults
+    console.error('[ColliderML] Failed to fetch dataset info:', error)
+    // Fallback to known configs
     channelTypes.value = [
       { id: 'ttbar', label: 'ttbar', available: true },
-      { id: 'ggf', label: 'ggf', available: true }
+      { id: 'ggf', label: 'ggf', available: true },
+      { id: 'dihiggs', label: 'dihiggs', available: true }
     ]
     pileupTypes.value = [
-      { id: 'pu0', label: 'No Pileup (pu0)', available: true }
+      { id: 'pu0', label: 'No Pileup (pu0)', available: true },
+      { id: 'pu200', label: 'Pileup 200', available: true }
     ]
     loading.value = false
   }
@@ -187,23 +196,25 @@ const command = computed(() => {
   const objects = selections.value.objects
   const events = selections.value.eventCount
 
-  const datasetId = `OpenDataDetector/ColliderML_${channel}_${pileup}`
+  const datasetId = 'CERN/Colliderml-release-1'
 
   if (objects.length === 0) {
     return `# Select at least one object type`
   }
 
   if (objects.length === 1) {
+    const configName = `${channel}_${pileup}_${objects[0]}`
     return `from datasets import load_dataset
-dataset = load_dataset("${datasetId}", "${objects[0]}", split="train[:${events}]")`
+dataset = load_dataset("${datasetId}", "${configName}", split="train[:${events}]")`
   }
 
   // Multiple objects
   let code = `from datasets import load_dataset\n\n`
   code += `# Load selected objects\n`
   objects.forEach(obj => {
+    const configName = `${channel}_${pileup}_${obj}`
     const varName = obj.replace('_', '')
-    code += `${varName} = load_dataset("${datasetId}", "${obj}", split="train[:${events}]")\n`
+    code += `${varName} = load_dataset("${datasetId}", "${configName}", split="train[:${events}]")\n`
   })
 
   return code

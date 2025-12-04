@@ -20,15 +20,15 @@ pip install -e .
 
 ## Loading Your First Dataset
 
-ColliderML datasets are hosted on HuggingFace Hub and can be loaded using the standard `datasets` library:
+The ColliderML dataset is hosted on HuggingFace Hub and can be loaded using the standard `datasets` library:
 
 ```python
 from datasets import load_dataset
 
-# Load the ttbar particles dataset
+# Load the ttbar particles dataset (no pileup)
 dataset = load_dataset(
-    "OpenDataDetector/ColliderML_ttbar_pu0",
-    "particles",
+    "CERN/Colliderml-release-1",
+    "ttbar_pu0_particles",
     split="train"
 )
 
@@ -37,21 +37,25 @@ print(f"Loaded {len(dataset)} events")
 
 ## Understanding Dataset Structure
 
-Each ColliderML dataset is organized by:
+The ColliderML dataset is organized with configurations that combine:
 
-- **Process**: The physics process being simulated (e.g., `ttbar`, `ggf`)
+- **Process**: The physics process being simulated (e.g., `ttbar`, `ggf`, `dihiggs`)
 - **Pileup**: The pileup condition (e.g., `pu0` for no pileup, `pu200` for 200 pileup)
-- **Configuration**: The data view or hierarchy level
+- **Object Type**: The detector data type or hierarchy level
 
 ### Available Configurations
 
-ColliderML provides multiple views of the same collision events:
+Each configuration name follows the pattern `{process}_{pileup}_{object_type}`. For example:
+- `ttbar_pu0_particles`
+- `ggf_pu200_calo_hits`
+- `dihiggs_pu0_tracks`
+
+ColliderML provides multiple views of collision events:
 
 - `particles`: Truth-level particle information (Monte Carlo truth)
 - `tracker_hits`: Detector measurements in the tracking system
 - `calo_hits`: Detector measurements in the calorimeter
 - `tracks`: Reconstructed particle tracks
-- (More configurations may be available)
 
 ### Loading Different Configurations
 
@@ -60,22 +64,22 @@ from datasets import load_dataset
 
 # Load truth-level particles
 particles = load_dataset(
-    "OpenDataDetector/ColliderML_ttbar_pu0",
-    "particles",
+    "CERN/Colliderml-release-1",
+    "ttbar_pu0_particles",
     split="train"
 )
 
 # Load tracker hits (detector measurements)
 tracker_hits = load_dataset(
-    "OpenDataDetector/ColliderML_ttbar_pu0",
-    "tracker_hits",
+    "CERN/Colliderml-release-1",
+    "ttbar_pu0_tracker_hits",
     split="train"
 )
 
 # Load reconstructed tracks
 tracks = load_dataset(
-    "OpenDataDetector/ColliderML_ttbar_pu0",
-    "tracks",
+    "CERN/Colliderml-release-1",
+    "ttbar_pu0_tracks",
     split="train"
 )
 ```
@@ -139,8 +143,8 @@ from datasets import load_dataset
 
 # Load in streaming mode
 dataset = load_dataset(
-    "OpenDataDetector/ColliderML_ttbar_pu0",
-    "particles",
+    "CERN/Colliderml-release-1",
+    "ttbar_pu0_particles",
     split="train",
     streaming=True  # Enable streaming
 )
@@ -160,8 +164,8 @@ ColliderML includes multiple physics processes:
 
 ```python
 dataset = load_dataset(
-    "OpenDataDetector/ColliderML_ttbar_pu0",
-    "particles",
+    "CERN/Colliderml-release-1",
+    "ttbar_pu0_particles",
     split="train"
 )
 ```
@@ -170,13 +174,23 @@ dataset = load_dataset(
 
 ```python
 dataset = load_dataset(
-    "OpenDataDetector/ColliderML_ggf_pu0",
-    "particles",
+    "CERN/Colliderml-release-1",
+    "ggf_pu0_particles",
     split="train"
 )
 ```
 
-More processes may be available. Check the [OpenDataDetector HuggingFace organization](https://huggingface.co/OpenDataDetector) for a complete list.
+### Di-Higgs Production (dihiggs)
+
+```python
+dataset = load_dataset(
+    "CERN/Colliderml-release-1",
+    "dihiggs_pu0_particles",
+    split="train"
+)
+```
+
+Check the [CERN/Colliderml-release-1 dataset page](https://huggingface.co/datasets/CERN/Colliderml-release-1) for a complete list of available configurations.
 
 ## Data Inspection Example
 
@@ -188,8 +202,8 @@ import numpy as np
 
 # Load dataset
 dataset = load_dataset(
-    "OpenDataDetector/ColliderML_ttbar_pu0",
-    "particles",
+    "CERN/Colliderml-release-1",
+    "ttbar_pu0_particles",
     split="train"
 )
 
@@ -225,8 +239,8 @@ The datasets library integrates seamlessly with popular ML frameworks:
 from datasets import load_dataset
 
 dataset = load_dataset(
-    "OpenDataDetector/ColliderML_ttbar_pu0",
-    "particles",
+    "CERN/Colliderml-release-1",
+    "ttbar_pu0_particles",
     split="train"
 )
 
@@ -262,4 +276,4 @@ If you encounter issues:
 
 - Check the [FAQ](./faq.md)
 - Visit our [GitHub Issues](https://github.com/OpenDataDetector/ColliderML/issues)
-- Consult the [HuggingFace Hub](https://huggingface.co/OpenDataDetector) documentation
+- Consult the [CERN/Colliderml-release-1 dataset page](https://huggingface.co/datasets/CERN/Colliderml-release-1)
